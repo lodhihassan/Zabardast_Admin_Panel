@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zabardast — Sign In / Sign Up</title>
+    <meta name="description" content="Sign in or create an account for the Zabardast Admin Suite.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../Styles/common.css">
+    <link rel="stylesheet" href="../Styles/login.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../Scripts/common.js"></script>
+    <script src="../Scripts/login.js"></script>
+</head>
+
+<body>
+
+    <div class="login-card">
+
+        <!-- Brand Header -->
+        <div class="login-brand-header">
+            <img src="../Icons/App Icon.png" class="login-brand-app-icon" alt="Zabardast App Icon">
+            <img src="../Icons/Wordmark (Color).png" class="login-wordmark-img" alt="Zabardast Wordmark">
+            <h2 id="gateTitle">Admin Suite</h2>
+            <p id="gateSubtitle">Enter your credentials to access Admin Dashboard</p>
+        </div>
+
+        <!-- Auth Toggle Tabs -->
+        <div class="auth-toggle-bar" style="display: none;">
+            <button type="button" id="btnTabSignin" class="auth-toggle-btn active" onclick="switchAuthMode('signin')">🔑 Sign In</button>
+            <button type="button" id="btnTabSignup" class="auth-toggle-btn" onclick="switchAuthMode('signup')">📝 Sign Up</button>
+        </div>
+
+        <!-- Alert Box -->
+        <div id="gateAlert" class="alert-box"></div>
+
+        <!-- ══ SIGN IN FORM ══ -->
+        <form id="loginGateForm">
+            <div class="form-group">
+                <label for="gateEmail">Email Address *</label>
+                <input type="email" id="gateEmail" placeholder="admin@example.com" required>
+            </div>
+            <div class="form-group form-divider">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label for="gatePassword">Password *</label>
+                    <a href="javascript:void(0)" onclick="openForgotPasswordModal()" style="font-size: 11px; font-weight: 700; color: #4f46e5; text-decoration: none;">🔒 Forgot Password?</a>
+                </div>
+                <input type="password" id="gatePassword" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="btn-login" id="btnGateSubmit">Sign In to Portal</button>
+        </form>
+
+        <!-- ══ SIGN UP FORM ══ -->
+        <form id="signupGateForm" style="display: none;">
+            <div class="form-group">
+                <label for="gateSignupRole">User Role *</label>
+                <select id="gateSignupRole" required>
+                    <option value="">-- Loading Roles... --</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="gateSignupFullName">Full Name *</label>
+                <input type="text" id="gateSignupFullName" placeholder="e.g. Ali Khan" required>
+            </div>
+            <div class="form-group">
+                <label for="gateSignupEmail">Email Address *</label>
+                <input type="email" id="gateSignupEmail" placeholder="user@example.com" required>
+            </div>
+            <div class="form-group">
+                <label for="gateSignupPhone">Phone Number *</label>
+                <input type="text" id="gateSignupPhone" placeholder="03001234567" required>
+            </div>
+            <div class="form-group form-divider">
+                <label for="gateSignupPassword">Password *</label>
+                <input type="password" id="gateSignupPassword" placeholder="••••••••" minlength="6" required>
+            </div>
+            <button type="submit" class="btn-login" id="btnSignupSubmit">Register Account</button>
+        </form>
+
+        <!-- Footer Toggle -->
+        <button type="button" class="btn-guest-login" id="btnAuthFooterToggle" onclick="switchAuthMode('signup')">
+            📝 Need an Account? Sign Up Here
+        </button>
+
+    </div>
+
+    <!-- ══ FORGOT PASSWORD RESET MODAL ══ -->
+    <div id="forgotPasswordModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; z-index: 9999; padding: 20px;">
+        <div style="background: #ffffff; width: 100%; max-width: 420px; border-radius: 18px; padding: 28px; border: 1px solid #cbd5e1; box-shadow: 0 20px 40px rgba(0,0,0,0.2); position: relative;">
+            <button type="button" onclick="closeForgotPasswordModal()" style="position: absolute; top: 16px; right: 16px; border: none; background: #f1f5f9; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-weight: 800; color: #64748b;">✕</button>
+
+            <div style="text-align: center; margin-bottom: 20px;">
+                <div style="font-size: 32px; margin-bottom: 6px;">🔑</div>
+                <h3 style="font-size: 18px; font-weight: 800; color: #0f172a;">Reset Password</h3>
+                <p style="font-size: 12px; color: #64748b; margin-top: 4px;">Enter your email to receive a 6-digit OTP code</p>
+            </div>
+
+            <div id="modalAlert" class="alert-box"></div>
+
+            <div id="fpStep1">
+                <div class="form-group">
+                    <label for="fpEmail">Email Address *</label>
+                    <input type="email" id="fpEmail" placeholder="your.email@example.com" required>
+                </div>
+                <button type="button" class="btn-login" id="btnSendOtp" onclick="handleSendResetOtp()">📩 Send 6-Digit Reset OTP</button>
+            </div>
+
+            <div id="fpStep2" style="display: none;">
+                <div class="form-group">
+                    <label for="fpOtp">6-Digit OTP Code *</label>
+                    <input type="text" id="fpOtp" placeholder="123456" maxlength="6" style="letter-spacing: 4px; font-weight: 800; text-align: center; font-size: 16px;" required>
+                </div>
+                <div class="form-group">
+                    <label for="fpNewPassword">New Password *</label>
+                    <input type="password" id="fpNewPassword" placeholder="••••••••" minlength="6" required>
+                </div>
+                <button type="button" class="btn-login" id="btnVerifyOtp" onclick="handleVerifyResetOtp()">✅ Verify OTP & Update Password</button>
+                <button type="button" onclick="resetFpModalToStep1()" style="width: 100%; background: transparent; border: none; font-size: 12px; color: #64748b; font-weight: 600; margin-top: 10px; cursor: pointer;">← Resend OTP / Change Email</button>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>

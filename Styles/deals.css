@@ -1,0 +1,563 @@
+/* ── Deals Manager View Styles ── */
+body {
+    padding: 20px;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 100%;
+    margin: 0 auto;
+    background: var(--card-bg, #ffffff);
+    padding: 24px 28px;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+}
+
+.header-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 14px;
+    margin-bottom: 16px;
+}
+
+.header-title h2 {
+    font-size: 20px;
+    font-weight: 800;
+    color: #1e1b4b;
+}
+
+.top-nav-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.nav-tab-btn {
+    padding: 10px 20px;
+    background: #f1f5f9;
+    border: 1px solid var(--border-color, #cbd5e1);
+    border-radius: 10px;
+    color: var(--text-muted, #64748b);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.nav-tab-btn.active {
+    background: var(--primary, #4f46e5);
+    color: white;
+    border-color: var(--primary, #4f46e5);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+}
+
+.section-badge {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--primary, #4f46e5);
+    background: #e0e7ff;
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    display: inline-block;
+}
+
+.form-section {
+    background: var(--section-bg, #f8fafc);
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 10px;
+}
+
+.form-group.full-width { grid-column: 1 / -1; }
+
+label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #334155;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="time"],
+input[type="file"],
+select,
+textarea {
+    width: 100%;
+    padding: 8px 10px;
+    background: var(--input-bg, #f1f5f9);
+    border: 1px solid var(--border-color, #cbd5e1);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-main, #0f172a);
+    transition: all 0.2s;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary, #4f46e5);
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+
+.checkbox-container {
+    border: 1px solid var(--border-color, #cbd5e1);
+    padding: 8px;
+    max-height: 100px;
+    overflow-y: auto;
+    background: #ffffff;
+    border-radius: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.checkbox-container label {
+    font-weight: 500;
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    padding: 4px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    user-select: none;
+    margin: 0;
+}
+
+.checkbox-container label:hover {
+    background: #e2e8f0;
+}
+
+.checkbox-container input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    cursor: pointer;
+}
+
+#bogo_reward_section {
+    background: #fffbeb;
+    border: 1px dashed #f59e0b;
+    padding: 12px;
+    border-radius: 10px;
+    margin-top: 6px;
+    display: none;
+}
+
+.fine-print-input-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.btn-add-fp {
+    background-color: #10b981 !important;
+    width: auto !important;
+    padding: 8px 16px !important;
+    white-space: nowrap;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.fine-print-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    padding: 6px 10px;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    font-size: 12px;
+}
+
+.btn-edit-fp, .btn-remove-fp {
+    color: white;
+    border: none;
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+}
+.btn-edit-fp { background: #3b82f6; }
+.btn-remove-fp { background: #ef4444; }
+
+button[type="submit"] {
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 700;
+    width: 100%;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+}
+
+button[type="submit"]:hover { opacity: 0.95; }
+
+.filter-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    background: #f1f5f9;
+    padding: 14px;
+    border-radius: 12px;
+    flex-wrap: wrap;
+}
+
+.deals-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    align-items: start; /* CRITICAL FIX: Ensures only the expanded card grows, preventing empty white space on adjacent cards */
+}
+
+.deal-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    position: relative;
+    height: 100%;
+}
+
+.deal-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 24px -4px rgba(79, 70, 229, 0.12), 0 4px 12px rgba(0, 0, 0, 0.04);
+    border-color: #818cf8;
+}
+
+.deal-banner-wrapper {
+    width: 100%;
+    height: 135px;
+    background: linear-gradient(135deg, #e0e7ff 0%, #cbd5e1 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.deal-banner-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s ease;
+}
+
+.deal-card:hover .deal-banner-img {
+    transform: scale(1.04);
+}
+
+.deal-banner-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(15, 23, 42, 0.45) 0%, transparent 40%, rgba(15, 23, 42, 0.35) 100%);
+    pointer-events: none;
+}
+
+.deal-id-top-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(15, 23, 42, 0.85);
+    color: #ffffff;
+    padding: 3px 10px;
+    border-radius: 14px;
+    font-weight: 800;
+    font-size: 10.5px;
+    letter-spacing: 0.3px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    backdrop-filter: blur(6px);
+    z-index: 2;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.deal-tag-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+    color: white;
+    padding: 4px 9px;
+    border-radius: 14px;
+    font-size: 9.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3);
+    z-index: 2;
+}
+
+.deal-status-badge {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    padding: 3px 8px;
+    border-radius: 14px;
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    z-index: 2;
+    backdrop-filter: blur(6px);
+}
+
+.status-active { background: rgba(209, 250, 229, 0.95); color: #065f46; border: 1px solid #a7f3d0; }
+.status-inactive { background: rgba(254, 226, 226, 0.95); color: #991b1b; border: 1px solid #fecaca; }
+
+.vendor-logo-avatar {
+    position: absolute;
+    bottom: -14px;
+    left: 14px;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: #ffffff;
+    border: 2px solid #ffffff;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+    object-fit: contain;
+    z-index: 3;
+}
+
+.deal-card-body {
+    padding: 18px 14px 14px 14px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: 6px;
+}
+
+/* Flexible content area grows to fill card, pushing actions to bottom */
+.deal-card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+}
+
+.deal-card-title {
+    font-size: 13.5px;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.35;
+    margin-top: 2px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 36px;
+}
+
+.deal-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-muted, #64748b);
+    font-weight: 600;
+    flex-wrap: wrap;
+    min-height: 22px;
+}
+
+.deal-chips-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+    min-height: 28px;
+}
+
+.meta-chip {
+    background: #f1f5f9;
+    padding: 3px 8px;
+    border-radius: 6px;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+    font-weight: 700;
+    font-size: 10.5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.deal-desc {
+    font-size: 11px;
+    color: #64748b;
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 32px;
+}
+
+.btn-toggle-details {
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    color: #4f46e5;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 7px 10px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    margin-top: 2px;
+    width: 100%;
+}
+
+.btn-toggle-details:hover {
+    background: #e0e7ff;
+    color: #3730a3;
+    border-color: #a5b4fc;
+}
+
+.btn-toggle-details .arrow-icon {
+    font-size: 9px;
+    transition: transform 0.25s ease;
+    display: inline-block;
+}
+
+.btn-toggle-details.open .arrow-icon {
+    transform: rotate(180deg);
+}
+
+.deal-details-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 11.5px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 4px;
+    animation: fadeInSlide 0.2s ease;
+}
+
+@keyframes fadeInSlide {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.deal-details-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    color: #334155;
+    font-size: 11px;
+}
+
+.deal-card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 10px;
+    border-top: 1px solid #f1f5f9;
+    flex-shrink: 0;
+}
+
+.btn-card-edit {
+    flex: 2;
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 3px 8px rgba(79, 70, 229, 0.2);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+.btn-card-edit:hover {
+    opacity: 0.95;
+    transform: translateY(-1px);
+    box-shadow: 0 5px 12px rgba(79, 70, 229, 0.3);
+}
+
+.btn-card-deactivate {
+    flex: 1;
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 11.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.btn-card-deactivate:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
+}
+
+
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    padding: 20px;
+}
+
+.modal-card {
+    background: #ffffff;
+    border-radius: 20px;
+    max-width: 520px;
+    width: 100%;
+    padding: 28px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    border: 1px solid #cbd5e1;
+    position: relative;
+}

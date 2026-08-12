@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deals Manager - Variant 4: Drawer & Catalog</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../Styles/common.css">
+    <link rel="stylesheet" href="../Styles/deals.css">
+    <link rel="stylesheet" href="../Styles/deals_variants.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        if (window.self !== window.top) {
+            document.documentElement.classList.add('in-iframe');
+        }
+    </script>
+    <script src="../Scripts/common.js"></script>
+    <script src="../Scripts/deals.js"></script>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Variant Switcher Header -->
+        <div class="variant-switcher-bar">
+            <span class="variant-switcher-title">🎨 UI Variants:</span>
+            <a href="deals_v1_live_preview.html" class="variant-pill-btn">📱 V1: Live Preview</a>
+            <a href="deals_v2_stepper.html" class="variant-pill-btn">🧭 V2: Stepper Wizard</a>
+            <a href="deals_v3_tabbed_accordion.html" class="variant-pill-btn">📂 V3: Accordion Tabs</a>
+            <a href="deals_v4_drawer_catalog.html" class="variant-pill-btn active">📑 V4: Drawer & Catalog</a>
+            <a href="deals_v5_command_center.html" class="variant-pill-btn">⚡ V5: Command Center</a>
+        </div>
+
+        <div class="header-title">
+            <div>
+                <h2 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                    📑 Deals Catalog <span style="font-size: 11px; background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 10px;">Variant 4</span>
+                </h2>
+                <span style="font-size: 12px; color: var(--text-muted);">Catalog-First View with Slide-Out Creation Drawer</span>
+            </div>
+            <div>
+                <button type="button" onclick="openSideDrawer()" style="background: var(--primary-gradient); color: white; border: none; padding: 10px 18px; border-radius: 10px; font-weight: 800; font-size: 13px; cursor: pointer; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);">➕ Create New Deal</button>
+            </div>
+        </div>
+        
+        <div id="formMessage" class="message"></div>
+
+        <!-- MAIN CATALOG GRID VIEW -->
+        <div>
+            <div class="filter-bar">
+                <input type="text" id="dealSearchInput" class="search-input" style="flex: 2; padding: 8px 12px; font-size: 13px;" placeholder="🔍 Search deals by title, vendor, category..." oninput="filterDealsList()">
+                <select id="dealCategoryFilter" class="filter-select" style="flex: 1; padding: 8px 12px; font-size: 13px;" onchange="fetchDealsList()"><option value="">All Categories</option></select>
+                <select id="dealBranchFilter" class="filter-select" style="flex: 1; padding: 8px 12px; font-size: 13px;" onchange="filterDealsList()"><option value="">All Branches</option></select>
+                <select id="dealStatusFilter" class="filter-select" style="flex: 1; padding: 8px 12px; font-size: 13px;" onchange="filterDealsList()">
+                    <option value="all">All Status</option>
+                    <option value="active" selected>Active Only</option>
+                    <option value="inactive">Inactive Only</option>
+                </select>
+                <button type="button" onclick="fetchDealsList()" style="background: var(--primary); color: white; border: none; padding: 8px 14px; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer;">Refresh</button>
+            </div>
+
+            <div id="dealsGridContainer" class="deals-grid">
+                <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted);">Loading deals list...</div>
+            </div>
+        </div>
+
+        <!-- SLIDE-OUT SIDE DRAWER FORM -->
+        <div id="drawerOverlay" class="drawer-overlay" onclick="closeSideDrawer()">
+            <div class="side-drawer-panel" onclick="event.stopPropagation()">
+                <div class="drawer-header">
+                    <span style="font-weight: 800; font-size: 16px;" id="drawerTitle">➕ Create New Deal</span>
+                    <button type="button" onclick="closeSideDrawer()" style="background: none; border: none; color: white; font-size: 20px; cursor: pointer;">✕</button>
+                </div>
+                <div class="drawer-body">
+                    <form id="dealForm">
+                        <div class="form-section">
+                            <span class="section-badge">1. General Info</span>
+                            <div class="form-group">
+                                <label for="category_id">Select Category *</label>
+                                <select id="category_id" required><option value="">Select Category First</option></select>
+                            </div>
+                            <div class="form-group">
+                                <label for="vendor_id">Select Vendor *</label>
+                                <select id="vendor_id" required><option value="">Select Category First</option></select>
+                            </div>
+                            <div class="form-group">
+                                <label for="title">Deal Title *</label>
+                                <input type="text" id="title" placeholder="e.g. 20% OFF on Zinger Burger" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="description">Description *</label>
+                                <textarea id="description" rows="2" placeholder="Enter deal description..." required></textarea>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <span class="section-badge">2. Scope & Target</span>
+                            <div class="form-group">
+                                <label>Target Institutes</label>
+                                <div id="institute_checkbox_container" class="checkbox-container"><span style="color: gray; font-size: 12px;">Loading institutes...</span></div>
+                            </div>
+                            <div class="form-group">
+                                <label>Target Branches</label>
+                                <div id="branch_checkbox_container" class="checkbox-container"><span style="color: gray; font-size: 12px;">Select Vendor first...</span></div>
+                            </div>
+                            <div class="form-group">
+                                <label>Qualifying Products (Buy)</label>
+                                <div id="products_checkbox_container" class="checkbox-container"><span style="color: gray; font-size: 12px;">Select Vendor first...</span></div>
+                            </div>
+                            <div class="form-group">
+                                <label>Qualifying Sub-Products (Buy)</label>
+                                <div id="sub_product_checkbox_container" class="checkbox-container"><span style="color: gray; font-size: 12px;">Select Product first...</span></div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <span class="section-badge">3. Discount & Schedule</span>
+                            <div class="grid-2">
+                                <div class="form-group"><label for="discount_type">Deal Type</label><select id="discount_type"><option value="">Loading...</option></select></div>
+                                <div class="form-group"><label for="discount_value">Discount Value</label><input type="number" id="discount_value" step="0.01" placeholder="20"></div>
+                                <div class="form-group"><label for="discount_prefix">Prefix</label><select id="discount_prefix"><option value="">Loading...</option></select></div>
+                                <div class="form-group"><label for="deal_tag">Badge Tag</label><select id="deal_tag"><option value="">Loading...</option></select></div>
+                                <div class="form-group"><label for="valid_from">Valid From</label><input type="date" id="valid_from"></div>
+                                <div class="form-group"><label for="valid_until">Valid Until</label><input type="date" id="valid_until"></div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <span class="section-badge">4. Media & Rules</span>
+                            <div class="form-group">
+                                <label for="banner_image">Banner Image</label>
+                                <input type="file" id="banner_image" accept="image/*">
+                            </div>
+                            <div class="form-group">
+                                <label>The Fine Print</label>
+                                <div id="fine_print_container" style="max-height: 80px; overflow-y: auto;"></div>
+                                <div class="fine-print-input-row">
+                                    <input type="text" id="fine_print_text_input" placeholder="e.g. Valid student ID required.">
+                                    <button type="button" id="add_fine_print_btn" class="btn-add-fp">+</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 10px; margin-top: 16px;">
+                            <button type="submit" id="btnDealFormSubmit" style="flex: 2;">Save Deal</button>
+                            <button type="button" id="btnCancelEditDeal" onclick="closeSideDrawer()" style="flex: 1; background: #e2e8f0; color: #334155; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

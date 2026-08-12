@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Verification Manager</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../Styles/common.css">
+    <link rel="stylesheet" href="../Styles/student_verifications.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../Scripts/common.js"></script>
+    <script src="../Scripts/student_verifications.js"></script>
+</head>
+
+<body>
+
+    <!-- Header Section -->
+    <div class="page-header">
+        <h1>🎓 Student Verification Requests</h1>
+        <p>Review student profiles, inspect CNIC & Student Cards, and approve or reject activations.</p>
+    </div>
+
+    <!-- KPI Summary Bar -->
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-info">
+                <h4>Total Student Profiles</h4>
+                <div class="kpi-value" id="kpiTotal">0</div>
+            </div>
+            <div class="kpi-icon total">📋</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-info">
+                <h4>Pending</h4>
+                <div class="kpi-value" id="kpiPending" style="color: #b45309;">0</div>
+            </div>
+            <div class="kpi-icon pending">⏳</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-info">
+                <h4>Approved</h4>
+                <div class="kpi-value" id="kpiApproved" style="color: #047857;">0</div>
+            </div>
+            <div class="kpi-icon approved">✅</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-info">
+                <h4>Rejected</h4>
+                <div class="kpi-value" id="kpiRejected" style="color: #b91c1c;">0</div>
+            </div>
+            <div class="kpi-icon rejected">❌</div>
+        </div>
+    </div>
+
+    <!-- Toolbar: Filter Tabs & Search -->
+    <div class="toolbar-card">
+        <div class="filter-tabs">
+            <button class="filter-tab-btn active" onclick="filterByStatus('ALL', this)">All Profiles</button>
+            <button class="filter-tab-btn" onclick="filterByStatus('P', this)">⏳ Pending</button>
+            <button class="filter-tab-btn" onclick="filterByStatus('A', this)">✅ Approved</button>
+            <button class="filter-tab-btn" onclick="filterByStatus('R', this)">❌ Rejected</button>
+        </div>
+
+        <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchInput" placeholder="Search student name, email, phone..." oninput="handleSearch()">
+        </div>
+    </div>
+
+    <!-- Verifications Grid -->
+    <div class="verifications-grid" id="requestsGrid">
+        <div class="empty-state">
+            <div style="font-size: 36px; margin-bottom: 8px;">🔄</div>
+            <h3>Loading Student Profiles & Verifications...</h3>
+        </div>
+    </div>
+
+    <!-- Document Lightbox Modal -->
+    <div class="modal-backdrop" id="docModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalDocTitle">📄 Document Viewer</h3>
+                <button type="button" class="btn-close-modal" onclick="closeDocModal()">✕</button>
+            </div>
+            <img src="" id="modalImg" class="modal-img-preview" alt="Full Resolution Document Preview">
+        </div>
+    </div>
+
+</body>
+
+</html>

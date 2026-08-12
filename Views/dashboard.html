@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zabardast — Admin Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../Styles/common.css">
+    <link rel="stylesheet" href="../Styles/dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="../Scripts/common.js"></script>
+    <script src="../Scripts/dashboard.js"></script>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+    <div class="sb-brand">
+        <h1>⚡ Zabardast</h1>
+        <p>Admin Control Center</p>
+    </div>
+    <div class="sb-user">
+        <div class="sb-avatar" id="sbAvatar">A</div>
+        <div>
+            <h4 id="sbName">Admin</h4>
+            <p id="sbEmail">—</p>
+        </div>
+    </div>
+    <nav class="sb-nav">
+        <div class="nav-group-label">Overview</div>
+        <button class="nav-btn active" onclick="scrollTop()"><span class="ni">📊</span> Dashboard</button>
+
+        <div class="nav-group-label">Management</div>
+        <button class="nav-btn" onclick="openDrawer('students')"><span class="ni">🎓</span> Students</button>
+        <button class="nav-btn" onclick="openDrawer('vendors')"><span class="ni">🏪</span> Vendors</button>
+        <button class="nav-btn" onclick="openDrawer('deals')"><span class="ni">🎁</span> Deals</button>
+        <button class="nav-btn" onclick="openDrawer('branches')"><span class="ni">🏢</span> Branches</button>
+        <button class="nav-btn" onclick="openDrawer('products')"><span class="ni">📦</span> Products</button>
+
+        <div class="nav-group-label">Admin Tools</div>
+        <button class="nav-btn" onclick="goto('admin_portal.html')"><span class="ni">🛠️</span> Catalog Manager</button>
+        <button class="nav-btn" onclick="goto('deals.html')"><span class="ni">🎯</span> Deals Editor</button>
+        <button class="nav-btn" onclick="goto('student_verifications.html')"><span class="ni">✅</span> Verifications</button>
+        <button class="nav-btn" onclick="goto('admin_notifications.html')"><span class="ni">🔔</span> Notifications</button>
+        <button class="nav-btn" onclick="goto('referral_rewards.html')"><span class="ni">🎁</span> Referral Rewards</button>
+    </nav>
+    <div class="sb-footer">
+        <button class="btn-logout" onclick="handleLogout()">🚪 Sign Out</button>
+    </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+
+    <!-- Top Bar -->
+    <div class="topbar">
+        <div>
+            <h2>📊 Admin Dashboard</h2>
+            <p id="dashSub">Loading overview...</p>
+        </div>
+        <div class="live-pill"><div class="live-dot"></div> Live Data</div>
+    </div>
+
+    <!-- KPI ROW 1 -->
+    <div class="kpi-grid" id="kpiRow1">
+        <div class="kpi-card"><div class="shimmer" style="width:100%;height:60px;border-radius:10px;"></div></div>
+        <div class="kpi-card"><div class="shimmer" style="width:100%;height:60px;border-radius:10px;"></div></div>
+        <div class="kpi-card"><div class="shimmer" style="width:100%;height:60px;border-radius:10px;"></div></div>
+        <div class="kpi-card"><div class="shimmer" style="width:100%;height:60px;border-radius:10px;"></div></div>
+    </div>
+
+    <!-- KPI ROW 2 -->
+    <div class="kpi-grid" id="kpiRow2">
+        <div class="kpi-card"><div class="shimmer" style="width:100%;height:60px;border-radius:10px;"></div></div>
+        <div class="kpi-card"><div class="shimmer" style="width:100%;height:60px;border-radius:10px;"></div></div>
+        <div class="kpi-card"><div class="shimmer" style="width:100%;height:60px;border-radius:10px;"></div></div>
+        <div class="kpi-card"><div class="shimmer" style="width:100%;height:60px;border-radius:10px;"></div></div>
+    </div>
+
+    <!-- CHARTS ROW -->
+    <div class="charts-grid">
+        <div class="chart-card">
+            <div class="chart-title">📈 Student Registrations (Last 6 Months)</div>
+            <div class="chart-canvas-wrap"><canvas id="chartLine" height="160"></canvas></div>
+        </div>
+        <div class="chart-card">
+            <div class="chart-title">🍩 Student Verification Status</div>
+            <div class="chart-canvas-wrap"><canvas id="chartDonut" height="160"></canvas></div>
+        </div>
+        <div class="chart-card">
+            <div class="chart-title">📊 Deals by Category</div>
+            <div class="chart-canvas-wrap"><canvas id="chartBar" height="160"></canvas></div>
+        </div>
+    </div>
+
+    <!-- TABLES ROW 1 -->
+    <div class="tables-row">
+        <div class="tbl-card">
+            <div class="tbl-head">
+                <h3><span>🎓</span> Recent Students</h3>
+                <button class="btn-view" onclick="openDrawer('students')">View All</button>
+            </div>
+            <table><thead><tr><th>Student</th><th>Status</th><th>Joined</th></tr></thead>
+            <tbody id="tblStudents"><tr class="em-row"><td colspan="3">Loading...</td></tr></tbody></table>
+        </div>
+        <div class="tbl-card">
+            <div class="tbl-head">
+                <h3><span>🏪</span> Vendors</h3>
+                <button class="btn-view" onclick="openDrawer('vendors')">View All</button>
+            </div>
+            <table><thead><tr><th>Vendor</th><th>Branches</th><th>Status</th></tr></thead>
+            <tbody id="tblVendors"><tr class="em-row"><td colspan="3">Loading...</td></tr></tbody></table>
+        </div>
+    </div>
+
+    <!-- TABLES ROW 2 -->
+    <div class="tables-row-3">
+        <div class="tbl-card">
+            <div class="tbl-head">
+                <h3><span>🎁</span> Active Deals</h3>
+                <button class="btn-view" onclick="openDrawer('deals')">View All</button>
+            </div>
+            <table><thead><tr><th>Deal</th><th>Vendor</th><th>Expires</th></tr></thead>
+            <tbody id="tblDeals"><tr class="em-row"><td colspan="3">Loading...</td></tr></tbody></table>
+        </div>
+        <div class="tbl-card">
+            <div class="tbl-head">
+                <h3><span>🏢</span> Branches</h3>
+                <button class="btn-view" onclick="openDrawer('branches')">View All</button>
+            </div>
+            <table><thead><tr><th>Branch</th><th>Vendor</th><th>Status</th></tr></thead>
+            <tbody id="tblBranches"><tr class="em-row"><td colspan="3">Loading...</td></tr></tbody></table>
+        </div>
+        <div class="tbl-card">
+            <div class="tbl-head">
+                <h3><span>📦</span> Products</h3>
+                <button class="btn-view" onclick="openDrawer('products')">View All</button>
+            </div>
+            <table><thead><tr><th>Product</th><th>Sub-Products</th></tr></thead>
+            <tbody id="tblProducts"><tr class="em-row"><td colspan="2">Loading...</td></tr></tbody></table>
+        </div>
+    </div>
+
+</main>
+
+<!-- DRAWER -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+    <div class="drawer-header">
+        <h3 id="drawerTitle">Details</h3>
+        <button class="drawer-close" onclick="closeDrawer()">✕</button>
+    </div>
+    <div class="drawer-search"><input type="text" id="drawerSearch" placeholder="Search..." oninput="filterDrawer()"></div>
+    <div class="drawer-body" id="drawerBody"></div>
+    <div class="drawer-count" id="drawerCount"></div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zabardast Admin Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../Styles/common.css">
+    <link rel="stylesheet" href="../Styles/admin_portal.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../Scripts/common.js"></script>
+    <script src="../Scripts/admin_portal.js"></script>
+</head>
+
+<body>
+
+    <!-- 1. MAIN DASHBOARD -->
+    <div id="mainDashboard">
+
+        <!-- SIDEBAR NAVIGATION -->
+        <div class="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-logo-group">
+                    <img src="../Icons/App Icon.png" id="sidebarBrandLogo" class="sidebar-brand-app-icon" alt="App Icon">
+                    <div class="brand-text">
+                        <img src="../Icons/Wordmark (Color).png" id="sidebarWordmark" class="sidebar-wordmark-img" alt="Zabardast">
+                        <h3 id="sidebarTitleText" style="display: none; font-size: 15px; font-weight: 800; color: #1e1b4b; margin: 0; line-height: 1.2;">Vendor Name</h3>
+                        <p id="sidebarSubTitle" style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-top: 2px;">Admin Control Panel</p>
+                    </div>
+                </div>
+                <button type="button" id="sidebarToggle" class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Collapse Sidebar">
+                    ◀
+                </button>
+            </div>
+
+            <div class="nav-menu">
+                <a class="nav-item active" id="nav-catalog" title="Catalog Setup" onclick="showDashboardPage('catalog', this)">
+                    <span class="nav-icon">📁</span> <span class="nav-text">Catalog Setup</span>
+                </a>
+                <a class="nav-item" id="nav-deals" title="Deals Manager" onclick="showDashboardPage('deals', this)">
+                    <span class="nav-icon">🎟️</span> <span class="nav-text">Deals Manager</span>
+                </a>
+                <a class="nav-item" id="nav-redemptions" title="Redemption History" onclick="showDashboardPage('redemptions', this)">
+                    <span class="nav-icon">📊</span> <span class="nav-text">Redemption History</span>
+                </a>
+                <a class="nav-item admin-only-nav" id="nav-params" title="General Parameters" onclick="showDashboardPage('params', this)">
+                    <span class="nav-icon">⚙️</span> <span class="nav-text">General Parameters</span>
+                </a>
+                <a class="nav-item admin-only-nav" id="nav-institutes" title="Institutes & Campuses" onclick="showDashboardPage('institutes', this)">
+                    <span class="nav-icon">🏫</span> <span class="nav-text">Institutes & Campuses</span>
+                </a>
+                <a class="nav-item admin-only-nav" id="nav-verifications" title="Student Verification" onclick="showDashboardPage('verifications', this)">
+                    <span class="nav-icon">🎓</span> <span class="nav-text">Student Verification</span>
+                </a>
+                <a class="nav-item admin-only-nav" id="nav-notifications" title="Notifications Manager" onclick="showDashboardPage('notifications', this)">
+                    <span class="nav-icon">🔔</span> <span class="nav-text">Notifications Center</span>
+                </a>
+                <a class="nav-item admin-only-nav" id="nav-referrals" title="Referral Rewards" onclick="showDashboardPage('referrals', this)">
+                    <span class="nav-icon">🎁</span> <span class="nav-text">Referral Rewards</span>
+                </a>
+            </div>
+
+            <div class="user-footer">
+                <div id="userBadge" class="user-status-badge">🟢 admin@example.com</div>
+                <div id="userAccountName" class="user-account-name" style="font-size: 11px; font-weight: 700; color: #334155; background: #f1f5f9; padding: 6px 12px; border-radius: 8px; text-align: center; border: 1px solid #cbd5e1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">👤 User: Admin</div>
+                <button class="btn-logout" onclick="handleLogout()" title="Sign Out">
+                    <span>🚪</span> <span class="btn-logout-text">Sign Out</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT AREA -->
+        <div class="main-content">
+
+            <!-- CATALOG VIEW -->
+            <div id="view-catalog" class="page-view active">
+                <div class="page-header">
+                    <div>
+                        <h2>Catalog Setup Manager</h2>
+                        <p>Manage Categories, Vendors, Branches, Products & Sub-Products with Image Bucket Uploads</p>
+                    </div>
+                </div>
+                <iframe id="catalogIframe" src="catalog.html?v=2.4" style="width: 100%; height: calc(100vh - 160px); border: 1px solid var(--card-border); border-radius: 14px; background: white;"></iframe>
+            </div>
+
+            <!-- DEALS MANAGER VIEW -->
+            <div id="view-deals" class="page-view">
+                <div class="page-header">
+                    <div>
+                        <h2>Deals Manager</h2>
+                        <p>Create & Target Deals with Institutes, Branches, Buy/Get Products & View All Created Deals</p>
+                    </div>
+                </div>
+                <iframe id="dealsIframe" src="deals.html?v=1.2" style="width: 100%; height: calc(100vh - 160px); border: 1px solid var(--card-border); border-radius: 14px; background: white;"></iframe>
+            </div>
+
+            <!-- REDEMPTION HISTORY VIEW -->
+            <div id="view-redemptions" class="page-view">
+                <div class="page-header">
+                    <div>
+                        <h2>Redemption History</h2>
+                        <p>Track real-time deal redemptions by branch, student, date range, and vendor staff</p>
+                    </div>
+                </div>
+                <iframe id="redemptionsIframe" src="redemption_history.html?v=1.0" style="width: 100%; height: calc(100vh - 160px); border: 1px solid var(--card-border); border-radius: 14px; background: white;"></iframe>
+            </div>
+
+            <!-- GENERAL PARAMETERS VIEW -->
+            <div id="view-params" class="page-view">
+                <div class="page-header">
+                    <div>
+                        <h2>General Parameters Manager</h2>
+                        <p>Manage System Parameters</p>
+                    </div>
+                </div>
+
+                <!-- Master-Detail Context Bar -->
+                <div id="paramContextBar" class="context-breadcrumb-bar">
+                    <span id="paramContextText" style="font-size: 12px; font-weight: 700; color: #3730a3;">Active Header Filter: None (Showing all details)</span>
+                    <button type="button" class="btn-sm" style="background: #ffffff; border: 1px solid #c7d2fe; color: #3730a3; padding: 4px 10px; border-radius: 6px; font-weight: 700; cursor: pointer;" onclick="resetParamHeaderContext()">Reset Selection Context</button>
+                </div>
+
+                <div class="sub-nav-tabs">
+                    <button class="sub-tab-btn active" id="pTab_hd" onclick="switchParamTab('hd')">⚙️ Parameter Headers</button>
+                    <button class="sub-tab-btn" id="pTab_dt" onclick="switchParamTab('dt')">📋 Parameter Details</button>
+                </div>
+
+                <div class="workspace">
+                    <div class="panel-card">
+                        <div class="panel-header">
+                            <span class="panel-title" id="paramListTitle">Headers List</span>
+                            <button type="button" class="btn-action-sm" onclick="resetParamForm()">+ Add New</button>
+                        </div>
+                        <div class="filter-bar" id="paramFilterBar"></div>
+                        <div class="records-list" id="paramListContainer"></div>
+                    </div>
+
+                    <div class="panel-card form-panel">
+                        <div class="panel-header">
+                            <span class="panel-title" id="paramFormTitle">Create Parameter Header</span>
+                            <span id="paramModeBadge" class="status-badge status-active">Create</span>
+                        </div>
+                        <div id="paramAlert" class="alert-box"></div>
+                        <form id="paramForm">
+                            <input type="hidden" id="paramEditId" value="">
+                            <div id="paramFieldsContainer"></div>
+                            <div class="btn-group">
+                                <button type="submit" class="btn-primary" id="btnParamSubmit">Save Record</button>
+                                <button type="button" class="btn-secondary" onclick="resetParamForm()">Cancel</button>
+                            </div>
+                            <div style="margin-top: 10px; display: none;" id="paramDeleteDiv">
+                                <button type="button" class="btn-danger-full" onclick="softDeleteParamRecord()">Delete</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- INSTITUTES & CAMPUSES VIEW -->
+            <div id="view-institutes" class="page-view">
+                <div class="page-header">
+                    <div>
+                        <h2>Institutes & Campuses Manager</h2>
+                        <p>Manage Target Educational Institutes & Campuses</p>
+                    </div>
+                </div>
+
+                <!-- Master-Detail Context Bar -->
+                <div id="instContextBar" class="context-breadcrumb-bar">
+                    <span id="instContextText" style="font-size: 12px; font-weight: 700; color: #3730a3;">Active Institute Filter: None (Showing all campuses)</span>
+                    <button type="button" class="btn-sm" style="background: #ffffff; border: 1px solid #c7d2fe; color: #3730a3; padding: 4px 10px; border-radius: 6px; font-weight: 700; cursor: pointer;" onclick="resetInstituteContext()">Reset Selection Context</button>
+                </div>
+
+                <div class="sub-nav-tabs">
+                    <button class="sub-tab-btn active" id="iTab_inst" onclick="switchInstTab('inst')">🏫 Institutes</button>
+                    <button class="sub-tab-btn" id="iTab_camp" onclick="switchInstTab('camp')">🏢 Campuses</button>
+                </div>
+
+                <div class="workspace">
+                    <div class="panel-card">
+                        <div class="panel-header">
+                            <span class="panel-title" id="instListTitle">Institutes List</span>
+                            <button type="button" class="btn-action-sm" onclick="resetInstForm()">+ Add New</button>
+                        </div>
+                        <div class="filter-bar" id="instFilterBar"></div>
+                        <div class="records-list" id="instListContainer"></div>
+                    </div>
+
+                    <div class="panel-card form-panel">
+                        <div class="panel-header">
+                            <span class="panel-title" id="instFormTitle">Create Institute</span>
+                            <span id="instModeBadge" class="status-badge status-active">Create</span>
+                        </div>
+                        <div id="instAlert" class="alert-box"></div>
+                        <form id="instForm">
+                            <input type="hidden" id="instEditId" value="">
+                            <div id="instFieldsContainer"></div>
+                            <div class="btn-group">
+                                <button type="submit" class="btn-primary" id="btnInstSubmit">Save Record</button>
+                                <button type="button" class="btn-secondary" onclick="resetInstForm()">Cancel</button>
+                            </div>
+                            <div style="margin-top: 10px; display: none;" id="instDeleteDiv">
+                                <button type="button" class="btn-danger-full" onclick="softDeleteInstRecord()">Delete</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STUDENT VERIFICATIONS VIEW -->
+            <div id="view-verifications" class="page-view">
+                <div class="page-header">
+                    <div>
+                        <h2>Student Verification Manager</h2>
+                        <p>Review student verification applications, inspect CNIC & Student Cards, and approve/reject profile activations.</p>
+                    </div>
+                </div>
+                <iframe id="verificationsIframe" src="student_verifications.html?v=1.0" style="width: 100%; height: calc(100vh - 160px); border: 1px solid var(--card-border); border-radius: 14px; background: white;"></iframe>
+            </div>
+
+            <!-- NOTIFICATIONS MANAGER VIEW -->
+            <div id="view-notifications" class="page-view">
+                <div class="page-header">
+                    <div>
+                        <h2>Notifications Center</h2>
+                        <p>Track notification delivery logs, student read/unread statuses, and broadcast custom messages.</p>
+                    </div>
+                </div>
+                <iframe id="notificationsIframe" src="admin_notifications.html?v=1.0" style="width: 100%; height: calc(100vh - 160px); border: 1px solid var(--card-border); border-radius: 14px; background: white;"></iframe>
+            </div>
+
+            <!-- REFERRAL REWARDS MANAGER VIEW -->
+            <div id="view-referrals" class="page-view">
+                <div class="page-header">
+                    <div>
+                        <h2>Referral Rewards Manager</h2>
+                        <p>Configure & manage milestone referral reward tiers for students (Admin Only).</p>
+                    </div>
+                </div>
+                <iframe id="referralsIframe" src="referral_rewards.html?v=1.0" style="width: 100%; height: calc(100vh - 160px); border: 1px solid var(--card-border); border-radius: 14px; background: white;"></iframe>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+
+</html>

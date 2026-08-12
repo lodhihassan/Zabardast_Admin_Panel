@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deals Manager - Admin Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../Styles/common.css">
+    <link rel="stylesheet" href="../Styles/deals.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        if (window.self !== window.top) {
+            document.documentElement.classList.add('in-iframe');
+        }
+    </script>
+    <script src="../Scripts/common.js"></script>
+    <script src="../Scripts/deals.js"></script>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header-title">
+            <h2>Deals Manager</h2>
+            <span style="font-size: 12px; color: var(--text-muted);">Admin Panel</span>
+        </div>
+
+        <!-- Top Navigation Tabs -->
+        <div class="top-nav-tabs">
+            <button class="nav-tab-btn active" id="tabBtnCreate" onclick="switchDealsView('create')">➕ Create New Deal</button>
+            <button class="nav-tab-btn" id="tabBtnView" onclick="switchDealsView('view')">📋 View All Created Deals</button>
+        </div>
+        
+        <div id="formMessage" class="message"></div>
+
+        <!-- 1. CREATE DEAL VIEW -->
+        <div id="createDealView">
+            <form id="dealForm">
+                
+                <!-- SECTION 1: CATEGORY, VENDOR & TITLE -->
+                <div class="form-section">
+                    <span class="section-badge">1. General Information</span>
+                    
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label for="category_id">Select Category *</label>
+                            <select id="category_id" required>
+                                <option value="">Select Category First</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="vendor_id">Select Vendor *</label>
+                            <select id="vendor_id" required>
+                                <option value="">Select Category First</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width" style="margin-top: 6px;">
+                        <label for="title">Deal Title (Auto-generated / Editable) *</label>
+                        <input type="text" id="title" placeholder="e.g. 20% OFF on Zinger Burger" required>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="description">Description *</label>
+                        <textarea id="description" rows="2" placeholder="Enter deal description..." required></textarea>
+                    </div>
+                </div>
+
+                <!-- SECTION 2: SCOPE & TARGETING -->
+                <div class="form-section">
+                    <span class="section-badge">2. Target Scope & Qualifying Items</span>
+
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Target Institutes (Optional)</label>
+                            <div id="institute_checkbox_container" class="checkbox-container">
+                                <span style="color: gray; font-size: 12px;">Loading institutes...</span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Target Branches (Optional)</label>
+                            <div id="branch_checkbox_container" class="checkbox-container">
+                                <span style="color: gray; font-size: 12px;">Select Vendor first...</span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Qualifying Products (Buy)</label>
+                            <div id="products_checkbox_container" class="checkbox-container">
+                                <span style="color: gray; font-size: 12px;">Select Vendor first...</span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Qualifying Sub-Products (Buy)</label>
+                            <div id="sub_product_checkbox_container" class="checkbox-container">
+                                <span style="color: gray; font-size: 12px;">Select Product first...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="bogo_reward_section">
+                        <label style="color: #b45309; font-weight: bold; font-size: 12px;">🎁 BOGO / Free Reward Items (Get Section)</label>
+                        <div class="grid-2" style="margin-top: 6px;">
+                            <div>
+                                <label style="font-size: 11px;">Free Products</label>
+                                <div id="reward_products_checkbox_container" class="checkbox-container">
+                                    <span style="color: gray; font-size: 12px;">Select Vendor first...</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label style="font-size: 11px;">Free Sub-Products</label>
+                                <div id="reward_sub_product_checkbox_container" class="checkbox-container">
+                                    <span style="color: gray; font-size: 12px;">Select Free Product first...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 3: DISCOUNT PARAMETERS -->
+                <div class="form-section">
+                    <span class="section-badge">3. Discount Details & Tagging</span>
+
+                    <div class="grid-3">
+                        <div class="form-group">
+                            <label for="discount_type">Deal Type</label>
+                            <select id="discount_type"><option value="">Loading...</option></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="discount_value">Discount Value</label>
+                            <input type="number" id="discount_value" step="0.01" placeholder="e.g. 20">
+                        </div>
+                        <div class="form-group">
+                            <label for="discount_prefix">Discount Prefix</label>
+                            <select id="discount_prefix"><option value="">Loading...</option></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="deal_tag">Deal Tag (Badge)</label>
+                            <select id="deal_tag"><option value="">Loading...</option></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="home_section">Home Section</label>
+                            <select id="home_section"><option value="">Loading...</option></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="redeem_limit_per_day">Redeem Limit Per Day</label>
+                            <input type="number" id="redeem_limit_per_day" value="1">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 4: VALIDITY DATES & TIMES -->
+                <div class="form-section">
+                    <span class="section-badge">4. Validity & Time Schedule</span>
+
+                    <div class="grid-4">
+                        <div class="form-group">
+                            <label for="valid_from">Valid From</label>
+                            <input type="date" id="valid_from">
+                        </div>
+                        <div class="form-group">
+                            <label for="valid_until">Valid Until</label>
+                            <input type="date" id="valid_until">
+                        </div>
+                        <div class="form-group">
+                            <label for="valid_day_from">Valid Day From</label>
+                            <select id="valid_day_from"><option value="">Loading...</option></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="valid_day_to">Valid Day To</label>
+                            <select id="valid_day_to"><option value="">Loading...</option></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="start_time">Start Time</label>
+                            <input type="time" id="start_time" value="00:00">
+                        </div>
+                        <div class="form-group">
+                            <label for="end_time">End Time</label>
+                            <input type="time" id="end_time" value="23:59">
+                        </div>
+                        <div class="form-group">
+                            <label for="min_purchase_amount">Min Purchase (PKR)</label>
+                            <input type="number" id="min_purchase_amount" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="max_discount_amount">Max Discount (PKR)</label>
+                            <input type="number" id="max_discount_amount" step="0.01">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 5: FINE PRINT & BANNER -->
+                <div class="form-section">
+                    <span class="section-badge">5. Banner & Terms</span>
+
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label for="banner_image">Banner Image</label>
+                            <input type="file" id="banner_image" accept="image/*">
+                            <div id="deal_image_preview_container" style="display: none; margin-top: 8px;">
+                                <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 4px;">Current Deal Image Preview:</div>
+                                <img id="deal_image_preview_img" src="" style="width: 100%; max-height: 140px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: 0 2px 6px rgba(0,0,0,0.08);">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>The Fine Print (Terms & Conditions)</label>
+                            <div id="fine_print_container" style="max-height: 80px; overflow-y: auto;"></div>
+                            <div class="fine-print-input-row">
+                                <input type="text" id="fine_print_text_input" placeholder="e.g. Valid student ID required.">
+                                <button type="button" id="add_fine_print_btn" class="btn-add-fp">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 16px;">
+                    <button type="submit" id="btnDealFormSubmit" style="flex: 2;">Create Deal</button>
+                    <button type="button" id="btnCancelEditDeal" onclick="resetDealFormToCreate()" style="flex: 1; display: none; background: #e2e8f0; color: #334155; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">Cancel Edit</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 2. VIEW ALL DEALS VIEW -->
+        <div id="viewDealsSection" style="display: none;">
+            <div class="filter-bar">
+                <input type="text" id="dealSearchInput" class="search-input" style="flex: 2; padding: 8px 12px; font-size: 13px;" placeholder="🔍 Search deals by title, vendor, category..." oninput="filterDealsList()">
+                <select id="dealCategoryFilter" class="filter-select" style="flex: 1; padding: 8px 12px; font-size: 13px;" onchange="fetchDealsList()">
+                    <option value="">All Categories</option>
+                </select>
+                <select id="dealBranchFilter" class="filter-select" style="flex: 1; padding: 8px 12px; font-size: 13px;" onchange="filterDealsList()">
+                    <option value="">All Branches</option>
+                </select>
+                <select id="dealStatusFilter" class="filter-select" style="flex: 1; padding: 8px 12px; font-size: 13px;" onchange="filterDealsList()">
+                    <option value="all">All Status</option>
+                    <option value="active" selected>Active Only</option>
+                    <option value="inactive">Inactive Only</option>
+                </select>
+                <button type="button" onclick="fetchDealsList()" style="background: var(--primary); color: white; border: none; padding: 8px 14px; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer;">Refresh</button>
+            </div>
+
+            <div id="dealsGridContainer" class="deals-grid">
+                <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted);">Loading deals list...</div>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

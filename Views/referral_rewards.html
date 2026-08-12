@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Referral Rewards Manager | Zabardast Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../Styles/common.css">
+    <link rel="stylesheet" href="../Styles/referral_rewards.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../Scripts/common.js"></script>
+    <script src="../Scripts/referral_rewards.js"></script>
+</head>
+
+<body>
+
+    <!-- Top Header Bar -->
+    <div class="header-bar">
+        <div class="header-title-group">
+            <h1>🎁 Referral Rewards Manager</h1>
+            <p>Configure reward tiers and track real-time student redemptions (Admin Portal)</p>
+        </div>
+        <button type="button" class="btn-create-reward" id="btnHeaderAction" onclick="openCreateModal()">
+            <span>➕</span> Create New Reward Tier
+        </button>
+    </div>
+
+    <!-- Sub Navigation Tabs -->
+    <div class="sub-nav-tabs">
+        <button class="sub-tab-btn active" id="tab_tiers" onclick="switchTab('tiers')">🎯 Master Reward Tiers</button>
+        <button class="sub-tab-btn" id="tab_logs" onclick="switchTab('logs')">📊 Student Redemptions Log</button>
+    </div>
+
+    <!-- KPI Stats Cards Grid -->
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-info">
+                <h4>Active Reward Tiers</h4>
+                <div class="kpi-value" id="kpiTotalTiers">0</div>
+            </div>
+            <div class="kpi-icon total">🎯</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-info">
+                <h4>Referred Friends Joined</h4>
+                <div class="kpi-value" id="kpiTotalJoined">0</div>
+            </div>
+            <div class="kpi-icon joined">🤝</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-info">
+                <h4>Unlocked Rewards</h4>
+                <div class="kpi-value" id="kpiUnlockedRewards">0</div>
+            </div>
+            <div class="kpi-icon unlocked">🎁</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-info">
+                <h4>Redeemed Rewards</h4>
+                <div class="kpi-value" id="kpiRedeemedRewards">0</div>
+            </div>
+            <div class="kpi-icon redeemed">🎟️</div>
+        </div>
+    </div>
+
+
+    <!-- TAB 1: MASTER REWARD TIERS VIEW -->
+    <div id="view-tiers" class="tab-content-view active">
+        <!-- Filter Toolbar Card -->
+        <div class="toolbar-card">
+            <div class="toolbar-grid">
+                <div class="filter-control">
+                    <label for="filterSearch">Search Tiers</label>
+                    <input type="text" id="filterSearch" placeholder="Search by brand name or reward title..."
+                        oninput="applyTierFilters()">
+                </div>
+                <div class="filter-control">
+                    <label for="filterCategory">Category</label>
+                    <select id="filterCategory" onchange="applyTierFilters()">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+                <div class="filter-control">
+                    <label for="filterStatus">Status</label>
+                    <select id="filterStatus" onchange="applyTierFilters()">
+                        <option value="ALL">All Statuses</option>
+                        <option value="ACTIVE" selected>Active Only</option>
+                        <option value="INACTIVE">Inactive Only</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Full-Width Table Card -->
+        <div class="table-card">
+            <div class="table-header-title">
+                <h3>📋 Master Referral Reward Tiers</h3>
+                <span id="tierCountSubtitle"
+                    style="font-size: 12.5px; font-weight: 700; color: var(--text-muted);">Loading tiers...</span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="notif-table">
+                    <thead>
+                        <tr>
+                            <th>Req. Friends</th>
+                            <th>Brand / Vendor</th>
+                            <th>Linked Deal</th>
+                            <th>Reward Title & Sub-note</th>
+                            <th>Status</th>
+                            <th style="text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tiersTableBody">
+                        <tr>
+                            <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 40px;">
+                                Loading reward tiers...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination Bar -->
+            <div class="pagination-bar">
+                <div class="pagination-info" id="tierPaginationInfo">Showing 0 tiers</div>
+                <div class="pagination-controls">
+                    <button class="btn-page" id="btnPrevTierPage" onclick="changeTierPage(-1)"
+                        disabled>Previous</button>
+                    <span id="tierPageNumbersContainer" style="display:flex; gap:4px;"></span>
+                    <button class="btn-page" id="btnNextTierPage" onclick="changeTierPage(1)" disabled>Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- TAB 2: STUDENT REDEMPTIONS LOG VIEW -->
+    <div id="view-logs" class="tab-content-view">
+        <!-- Filter Toolbar Card for Logs -->
+        <div class="toolbar-card">
+            <div class="toolbar-grid">
+                <div class="filter-control">
+                    <label for="logFilterSearch">Search Student / Vendor / Reward</label>
+                    <input type="text" id="logFilterSearch" placeholder="Search by student name, phone, vendor..."
+                        oninput="loadStudentRedemptionLogs()">
+                </div>
+                <div class="filter-control">
+                    <label for="logFilterStatus">Redemption Status</label>
+                    <select id="logFilterStatus" onchange="loadStudentRedemptionLogs()">
+                        <option value="ALL">All Statuses</option>
+                        <option value="RDY">RDY - Unlocked / Ready</option>
+                        <option value="RDM">RDM - Redeemed at Vendor</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Full-Width Logs Table Card -->
+        <div class="table-card">
+            <div class="table-header-title">
+                <h3>📊 Student Reward Unlocks & Vendor Redemptions Log</h3>
+                <span id="logCountSubtitle"
+                    style="font-size: 12.5px; font-weight: 700; color: var(--text-muted);">Loading logs...</span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="notif-table">
+                    <thead>
+                        <tr>
+                            <th>Student Details</th>
+                            <th>Brand / Vendor</th>
+                            <th>Reward & Sub-note</th>
+                            <th>Linked Deal</th>
+                            <th>Voucher / Code</th>
+                            <th>Status</th>
+                            <th>Unlocked Date</th>
+                            <th>Redeemed Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logsTableBody">
+                        <tr>
+                            <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 40px;">
+                                Loading student redemption logs...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- WIDE MODAL DIALOG POPUP: CREATE / EDIT REWARD TIER -->
+    <div class="modal-overlay" id="rewardModalOverlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modalTitle">Create New Reward Tier</h3>
+                <button type="button" class="modal-close-btn" onclick="closeRewardModal()">✕</button>
+            </div>
+
+            <div id="modalAlert" class="alert-box"></div>
+
+            <form id="rewardTierForm">
+                <input type="hidden" id="tierEditId" value="">
+
+                <div class="modal-form-grid">
+
+                    <!-- LEFT COLUMN -->
+                    <div class="form-group">
+                        <label for="required_referrals">Required Verified Friends *</label>
+                        <input type="number" id="required_referrals" class="form-control" placeholder="e.g. 1, 5, 10"
+                            min="1" required oninput="updateLivePreview()">
+                    </div>
+
+                    <!-- STEP 1: CATEGORY -->
+                    <div class="form-group">
+                        <label for="modal_category_id">Select Category *</label>
+                        <select id="modal_category_id" class="form-control" required
+                            onchange="handleModalCategoryChange()">
+                            <option value="">-- Select Category --</option>
+                        </select>
+                    </div>
+
+                    <!-- STEP 2: VENDOR -->
+                    <div class="form-group">
+                        <label for="modal_vendor_id">Select Vendor / Brand *</label>
+                        <select id="modal_vendor_id" class="form-control" required onchange="handleModalVendorChange()"
+                            disabled>
+                            <option value="">-- Choose Category First --</option>
+                        </select>
+                    </div>
+
+                    <!-- STEP 3: DEAL -->
+                    <div class="form-group">
+                        <label for="modal_deal_id">Linked Deal (Optional)</label>
+                        <select id="modal_deal_id" class="form-control" onchange="handleModalDealChange()" disabled>
+                            <option value="">-- Choose Vendor First --</option>
+                        </select>
+                    </div>
+
+                    <!-- RIGHT COLUMN -->
+                    <div class="form-group">
+                        <label for="title">Reward Title *</label>
+                        <input type="text" id="title" class="form-control" placeholder="e.g. Rs 500 off your next order"
+                            required oninput="updateLivePreview()">
+                    </div>
+
+                    <!-- SECONDARY SUB-NOTE FIELD -->
+                    <div class="form-group">
+                        <label for="reward_sub_text">Secondary Text / Sub-note (Optional)</label>
+                        <input type="text" id="reward_sub_text" class="form-control"
+                            placeholder="e.g. Rs 500 OFF, Free item" oninput="updateLivePreview()">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="voucher_code">Voucher / Promo Code (Optional)</label>
+                        <input type="text" id="voucher_code" class="form-control" placeholder="e.g. CHAII500">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="display_order">Display Order</label>
+                        <input type="number" id="display_order" class="form-control" value="1" min="1">
+                    </div>
+
+                    <div class="form-group" style="justify-content: flex-end;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-top: 18px;">
+                            <input type="checkbox" id="is_active" checked
+                                style="width: 20px; height: 20px; cursor: pointer;">
+                            <label for="is_active"
+                                style="margin-bottom: 0; cursor: pointer; font-size:13.5px; font-weight:700;">Active
+                                Reward Tier</label>
+                        </div>
+                    </div>
+
+                    <!-- Mobile App Live Preview Box -->
+                    <div class="preview-box" style="display: none;">
+                        <div class="preview-box-title">📱 Mobile App Student Preview</div>
+                        <div class="preview-item">
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <div id="pvLogo"
+                                    style="width:40px; height:40px; border-radius:12px; background:#475569; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; color:white;">
+                                    VB</div>
+                                <div>
+                                    <div id="pvBrand" style="font-size:14px; font-weight:800; color:#0f172a;">Brand Name
+                                    </div>
+                                    <div id="pvTitle" style="font-size:12px; color:#64748b; margin-top:1px;">Reward
+                                        Title</div>
+                                    <div id="pvSubNote" class="preview-subtext-badge">Rs 500 OFF</div>
+                                </div>
+                            </div>
+                            <span id="pvBadge"
+                                style="background:#d1fae5; color:#065f46; font-size:11px; font-weight:800; padding:4px 10px; border-radius:12px;">READY</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <button type="submit" class="btn-submit-modal" id="btnSubmitModal">Save Reward Tier</button>
+                    </div>
+
+                </div>
+            </form>
+        </div>
+    </div>
+
+</body>
+
+</html>

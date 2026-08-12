@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zabardast — Catalog Setup Manager</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../Styles/common.css">
+    <link rel="stylesheet" href="../Styles/catalog.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../Scripts/common.js"></script>
+    <script src="../Scripts/catalog.js"></script>
+</head>
+
+<body>
+
+    <!-- <div class="header-bar">
+        <div>
+            <h1>Catalog & Branch Manager</h1>
+            <p>Strict FK-based Cascading (Select Category ➔ Renders only its Vendors ➔ Renders only its Branches & Products)</p>
+        </div>
+    </div> -->
+
+    <!-- Active Master Selection Context Breadcrumbs -->
+    <div class="context-breadcrumb-bar" id="contextBreadcrumbBar">
+        <div class="breadcrumb-items" id="breadcrumbContainer">
+            <span>Hierarchy Context:</span>
+            <span style="color: #64748b; font-weight: 500;">No master selected (Showing all records)</span>
+        </div>
+        <button class="btn-reset-context" onclick="clearHierarchyContext()">Reset Selection Context</button>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs">
+        <button class="tab-btn active" id="tab_category" onclick="switchActiveTab('category')">
+            📁 Categories
+        </button>
+        <button class="tab-btn" id="tab_vendor" onclick="switchActiveTab('vendor')">
+            🏪 Vendors
+        </button>
+        <button class="tab-btn" id="tab_branch" onclick="switchActiveTab('branch')">
+            🏢 Branches
+        </button>
+        <button class="tab-btn" id="tab_product" onclick="switchActiveTab('product')">
+            📦 Products
+        </button>
+        <button class="tab-btn" id="tab_sub_product" onclick="switchActiveTab('sub_product')">
+            🏷️ Sub-Products
+        </button>
+    </div>
+
+    <!-- Main Workspace -->
+    <div class="workspace">
+
+        <!-- LEFT PANEL: Filter & List -->
+        <div class="panel-card">
+            <div class="panel-header">
+                <span class="panel-title" id="listPanelTitle">Categories List</span>
+                <button type="button" class="btn-action-sm" onclick="resetFormToCreate()">+ Add New</button>
+            </div>
+
+            <!-- Dynamic Filter Controls Bar -->
+            <div class="filter-controls-bar" id="leftFilterContainer"></div>
+
+            <div id="recordsListContainer" class="records-list">
+                <div style="color: var(--text-muted); text-align: center; padding: 20px;">Loading records...</div>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL: Form -->
+        <div class="panel-card form-panel">
+            <div class="panel-header">
+                <span class="panel-title" id="formTitle">Create Category</span>
+                <span id="modeBadge" style="font-size: 11px; padding: 4px 10px; border-radius: 6px; background: var(--primary); color: white; font-weight: 700;">Mode: Create</span>
+            </div>
+
+            <div id="alertBox" class="alert-box"></div>
+
+            <form id="dynamicForm">
+                <input type="hidden" id="editingRecordId" value="">
+
+                <div id="formFieldsContainer">
+                    <!-- Fields rendered dynamically per active tab -->
+                </div>
+
+                <div class="btn-group">
+                    <button type="submit" class="btn-primary" id="btnSubmitForm">Save Category</button>
+                    <button type="button" class="btn-secondary" onclick="resetFormToCreate()">Cancel</button>
+                </div>
+
+                <div style="margin-top: 14px; display: none;" id="deleteBtnContainer">
+                    <button type="button" class="btn-danger-full" style="width: 100%;" onclick="softDeleteCurrentRecord()">Delete</button>
+                </div>
+            </form>
+        </div>
+
+    </div>
+
+</body>
+
+</html>

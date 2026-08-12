@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notification Management Center | Zabardast Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../Styles/common.css">
+    <link rel="stylesheet" href="../Styles/admin_notifications.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../Scripts/common.js"></script>
+    <script src="../Scripts/admin_notifications.js"></script>
+</head>
+
+<body>
+
+    <!-- Header Section -->
+    <div class="header-bar">
+        <div class="header-title-group">
+            <h1>🔔 Student Notifications Manager</h1>
+            <p>Monitor sent notifications, student read/unread statuses, deal alerts, and broadcast custom messages.</p>
+        </div>
+        <button type="button" class="btn-create-notif" onclick="openSendModal()">
+            ➕ Broadcast Custom Notification
+        </button>
+    </div>
+
+    <!-- KPI Widgets -->
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-info">
+                <h4>Total Sent Logs</h4>
+                <div class="kpi-value" id="kpiTotal">0</div>
+            </div>
+            <div class="kpi-icon total">📩</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-info">
+                <h4>Read Notifications</h4>
+                <div class="kpi-value" id="kpiRead">0</div>
+            </div>
+            <div class="kpi-icon read">✅</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-info">
+                <h4>Unread Notifications</h4>
+                <div class="kpi-value" id="kpiUnread">0</div>
+            </div>
+            <div class="kpi-icon unread">⏳</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-info">
+                <h4>Target Students</h4>
+                <div class="kpi-value" id="kpiStudents">0</div>
+            </div>
+            <div class="kpi-icon students">🎓</div>
+        </div>
+    </div>
+
+    <!-- Filter Toolbar -->
+    <div class="toolbar-card">
+        <div class="toolbar-grid">
+            <div class="filter-control">
+                <label>🔍 Search Student</label>
+                <input type="text" id="searchStudent" placeholder="Student name, email or phone..." oninput="applyFilters()">
+            </div>
+            <div class="filter-control">
+                <label>🏷️ Notification Type</label>
+                <select id="filterType" onchange="applyFilters()">
+                    <option value="ALL">All Notification Types</option>
+                    <option value="W">👋 Welcome ('W')</option>
+                    <option value="V">✅ Verification Approved ('V')</option>
+                    <option value="R">❌ Verification Rejected ('R')</option>
+                    <option value="ND">🎁 New Deal Drop ('ND')</option>
+                    <option value="ED">⏰ Ending Deal Soon ('ED')</option>
+                    <option value="RJ">🤝 Referral Joined ('RJ')</option>
+                    <option value="RV">🎉 Referral Verified ('RV')</option>
+                    <option value="RU">🏆 Reward Unlocked ('RU')</option>
+                    <option value="SYS">📢 System Announcement ('SYS')</option>
+                </select>
+            </div>
+            <div class="filter-control">
+                <label>👁️ Read Status</label>
+                <select id="filterStatus" onchange="applyFilters()">
+                    <option value="ALL">All Statuses</option>
+                    <option value="READ">✅ Read Only</option>
+                    <option value="UNREAD">📩 Unread Only</option>
+                </select>
+            </div>
+            <div class="filter-control">
+                <label>📅 Date Sent</label>
+                <input type="date" id="filterDate" onchange="applyFilters()">
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications Log Table Card -->
+    <div class="table-card">
+        <div class="table-header-title">
+            <h3>📋 Notification Delivery & Read Status Logs</h3>
+            <span style="font-size: 12px; font-weight: 700; color: var(--text-muted);" id="logsCountLabel">Showing 0 logs</span>
+        </div>
+        <div class="table-responsive">
+            <table class="notif-table">
+                <thead>
+                    <tr>
+                        <th>Student Details</th>
+                        <th>Notification Type</th>
+                        <th>Title & Message Content</th>
+                        <th>Read / Delivery Status</th>
+                        <th>Date & Time Sent</th>
+                    </tr>
+                </thead>
+                <tbody id="notificationsTableBody">
+                    <!-- Dynamic Rows -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Bar -->
+        <div class="pagination-bar">
+            <div class="pagination-info" id="paginationInfo">Showing 1 to 10 of 0 logs</div>
+            <div class="pagination-controls">
+                <button type="button" class="btn-page" id="btnPrevPage" onclick="changePage(-1)">◀ Prev</button>
+                <div id="pageNumbers" style="display: flex; gap: 4px;"></div>
+                <button type="button" class="btn-page" id="btnNextPage" onclick="changePage(1)">Next ▶</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Broadcast Modal Dialog -->
+    <div class="modal-overlay" id="sendModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>📢 Broadcast Custom Notification</h3>
+                <button type="button" class="modal-close-btn" onclick="closeSendModal()">×</button>
+            </div>
+            <form id="customNotifForm" onsubmit="handleSendCustomNotif(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Target Audience</label>
+                        <select id="targetAudience" onchange="toggleStudentSelect()">
+                            <option value="ALL">🌐 Broadcast to ALL Students (Global)</option>
+                            <option value="SPECIFIC">👤 Send to Specific Student</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="specificStudentGroup" style="display: none;">
+                        <label>Select Student</label>
+                        <select id="specificStudentSelect">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Notification Category / Type</label>
+                        <select id="customType">
+                            <option value="SYS">📢 System Announcement ('SYS')</option>
+                            <option value="ND">🎁 New Deal Offer ('ND')</option>
+                            <option value="ED">⏰ Deal Ending Alert ('ED')</option>
+                            <option value="RU">🏆 Reward & Milestone ('RU')</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Notification Title</label>
+                        <input type="text" id="customTitle" required placeholder="e.g. Special Weekend Voucher Unlocked!">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Notification Message Body</label>
+                        <textarea id="customBody" rows="3" required placeholder="Type the message body details here..."></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" onclick="closeSendModal()">Cancel</button>
+                    <button type="submit" class="btn-submit">🚀 Dispatch Notification</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</body>
+
+</html>

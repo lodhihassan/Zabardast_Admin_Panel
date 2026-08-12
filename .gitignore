@@ -1,0 +1,53 @@
+# ================================================================
+# Zabardast Admin Portal - Git Ignore Rules
+# ================================================================
+
+# Dependencies & Build Cache
+node_modules/
+.pnpm-store/
+dist/
+build/
+
+# Environment Variables & Private Credentials
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.p12
+
+# Raw Database Backups / Data Dumps (Exclude raw dumps, keep database/ SQL schemas)
+*.dump
+*.backup
+*.sql.gz
+*.sqlite
+
+# Temporary Storage & Logs
+.tempmediaStorage/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Supabase CLI Local Runtime Data
+.supabase/
+
+# OS System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# IDE & Editor Settings
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
