@@ -7,7 +7,8 @@
     <title>Zabardast — Catalog Setup Manager</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="../Styles/common.css">
     <link rel="stylesheet" href="../Styles/catalog.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -25,7 +26,7 @@
     </div> -->
 
     <!-- Active Master Selection Context Breadcrumbs -->
-    <div class="context-breadcrumb-bar" id="contextBreadcrumbBar">
+    <div class="context-breadcrumb-bar" id="contextBreadcrumbBar" style="display: none;">
         <div class="breadcrumb-items" id="breadcrumbContainer">
             <span>Hierarchy Context:</span>
             <span style="color: #64748b; font-weight: 500;">No master selected (Showing all records)</span>
@@ -74,7 +75,9 @@
         <div class="panel-card form-panel">
             <div class="panel-header">
                 <span class="panel-title" id="formTitle">Create Category</span>
-                <span id="modeBadge" style="font-size: 11px; padding: 4px 10px; border-radius: 6px; background: var(--primary); color: white; font-weight: 700;">Mode: Create</span>
+                <span id="modeBadge"
+                    style="font-size: 11px; padding: 4px 10px; border-radius: 6px; background: var(--primary); color: white; font-weight: 700;">Mode:
+                    Create</span>
             </div>
 
             <div id="alertBox" class="alert-box"></div>
@@ -92,7 +95,8 @@
                 </div>
 
                 <div style="margin-top: 14px; display: none;" id="deleteBtnContainer">
-                    <button type="button" class="btn-danger-full" style="width: 100%;" onclick="softDeleteCurrentRecord()">Delete</button>
+                    <button type="button" class="btn-danger-full" style="width: 100%;"
+                        onclick="softDeleteCurrentRecord()">Delete</button>
                 </div>
             </form>
         </div>
