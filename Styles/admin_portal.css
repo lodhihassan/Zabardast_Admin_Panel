@@ -370,8 +370,8 @@ textarea:focus {
     margin-left: 260px;
     flex: 1;
     padding: 16px 24px;
-    max-width: calc(100vw - 260px);
-    width: calc(100vw - 260px);
+    max-width: calc(100% - 260px);
+    width: calc(100% - 260px);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -433,8 +433,8 @@ textarea:focus {
 
 .sidebar.collapsed+.main-content {
     margin-left: 72px;
-    max-width: calc(100vw - 72px);
-    width: calc(100vw - 72px);
+    max-width: calc(100% - 72px);
+    width: calc(100% - 72px);
 }
 
 .page-view {
