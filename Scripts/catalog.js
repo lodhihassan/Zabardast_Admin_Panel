@@ -184,13 +184,13 @@ async function switchActiveTab(tabName) {
 // Reload Master Lists
 async function reloadCoreMasterData() {
     try {
-        const { data: cats } = await window.sbClient.from('categories_t').select('category_id, name, order_by').eq('is_active', true).order('order_by', { ascending: true });
+        const { data: cats } = await window.sbClient.from('categories_t').select('category_id, name, order_by, is_active').order('order_by', { ascending: true });
         allCategories = cats || [];
 
-        const { data: vends } = await window.sbClient.from('vendors_t').select('vendor_id, name, category_id').eq('is_active', true).order('name');
+        const { data: vends } = await window.sbClient.from('vendors_t').select('vendor_id, name, category_id, is_active').order('name');
         allVendors = vends || [];
 
-        const { data: prods } = await window.sbClient.from('products_t').select('product_id, product_name, vendor_id').eq('is_active', true).order('product_name');
+        const { data: prods } = await window.sbClient.from('products_t').select('product_id, product_name, vendor_id, is_active').order('product_name');
         allProducts = prods || [];
 
         const { data: vRoles } = await window.sbClient
@@ -480,7 +480,24 @@ async function selectRecordForEdit(record) {
     document.getElementById('modeBadge').textContent = 'Mode: Update';
     document.getElementById('modeBadge').style.background = '#3b82f6';
     document.getElementById('btnSubmitForm').textContent = `Update ${config.title}`;
-    document.getElementById('deleteBtnContainer').style.display = 'block';
+    
+    const delContainer = document.getElementById('deleteBtnContainer');
+    if (delContainer) {
+        delContainer.style.display = 'block';
+        const delBtn = delContainer.querySelector('button');
+        if (delBtn) {
+            const isRecActive = record.is_active !== false;
+            if (isRecActive) {
+                delBtn.textContent = 'Delete';
+                delBtn.className = 'btn-danger-full';
+                delBtn.style.background = '#ef4444';
+            } else {
+                delBtn.textContent = 'Activate';
+                delBtn.className = 'btn-primary';
+                delBtn.style.background = '#10b981';
+            }
+        }
+    }
 
     renderFormFields();
 
@@ -704,7 +721,9 @@ function renderFormFields() {
 
         ${currentVendorId ? `
         <div style="margin-bottom: 16px;">
-            <button type="button" class="btn-danger-full" style="width: 100%;" onclick="softDeleteCurrentRecord()">Delete</button>
+            <button type="button" class="${selectedRecord?.is_active !== false ? 'btn-danger-full' : 'btn-primary'}" style="width: 100%; ${selectedRecord?.is_active === false ? 'background: #10b981;' : ''}" onclick="softDeleteCurrentRecord()">
+                ${selectedRecord?.is_active !== false ? 'Delete' : 'Activate'}
+            </button>
         </div>` : ''}
 
         ${!currentVendorId ? `
@@ -861,7 +880,9 @@ function renderFormFields() {
 
         ${currentBranchId ? `
         <div style="margin-bottom: 16px;">
-            <button type="button" class="btn-danger-full" style="width: 100%;" onclick="softDeleteCurrentRecord()">Delete</button>
+            <button type="button" class="${selectedRecord?.is_active !== false ? 'btn-danger-full' : 'btn-primary'}" style="width: 100%; ${selectedRecord?.is_active === false ? 'background: #10b981;' : ''}" onclick="softDeleteCurrentRecord()">
+                ${selectedRecord?.is_active !== false ? 'Delete' : 'Activate'}
+            </button>
         </div>` : ''}
 
         ${!currentBranchId ? `
@@ -1164,29 +1185,39 @@ async function rollbackManagedUpload(uploadInfo) {
     }
 }
 
-// Soft Delete Handler (Sets is_active = false)
-async function softDeleteById(id) {
-    if (!confirm('Are you sure you want to delete this record?')) return;
+// Status Toggle Handler (Activates or Deactivates records)
+async function softDeleteById(id, forcedStatus = null) {
     const config = tabConfigs[currentTab];
+    const targetRec = currentRecords.find(r => r[config.pk] == id);
+    const currentActive = targetRec ? (targetRec.is_active !== false) : true;
+    const newStatus = forcedStatus !== null ? forcedStatus : !currentActive;
+    const actionText = newStatus ? 'activate' : 'delete';
+
+    if (!confirm(`Are you sure you want to ${actionText} this ${config.title}?`)) return;
 
     try {
         const { error } = await window.sbClient
             .from(config.table)
-            .update({ is_active: false, updated_by: getCleanAdminUser() })
+            .update({ is_active: newStatus, updated_by: getCleanAdminUser() })
             .eq(config.pk, id);
 
         if (error) throw error;
-        showAlert(`⚠️ Record #${id} deactivated (is_active = false)`);
+        showAlert(`✅ Record #${id} ${newStatus ? 'activated' : 'deleted'} successfully!`);
         if (selectedRecord && selectedRecord[config.pk] === id) resetFormToCreate();
+        await reloadCoreMasterData();
+        renderLeftFilterBar();
         await fetchRecordsList();
     } catch (err) {
-        showAlert(`❌ Failed to delete: ${err.message}`, 'error');
+        showAlert(`❌ Failed to update status: ${err.message}`, 'error');
     }
 }
 
 async function softDeleteCurrentRecord() {
     const id = document.getElementById('editingRecordId').value;
-    if (id) await softDeleteById(id);
+    if (id) {
+        const isRecActive = selectedRecord ? (selectedRecord.is_active !== false) : true;
+        await softDeleteById(id, !isRecActive);
+    }
 }
 
 function updateHeaderBarVisibility() {

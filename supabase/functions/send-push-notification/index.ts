@@ -168,26 +168,40 @@ Deno.serve(async (req) => {
 
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-        // Select active FCM tokens joined with user notification settings
+        // Fetch user_ids of verified students only
+        const { data: verifiedProfiles } = await supabase
+            .from("student_profiles_t")
+            .select("user_id")
+            .eq("is_verified", true);
+
+        const verifiedUserIds = (verifiedProfiles || []).map((p: any) => p.user_id);
+
+        if (verifiedUserIds.length === 0) {
+            return new Response(
+                JSON.stringify({ success: true, sent: 0, message: "No verified students found to send notifications to" }),
+                { status: 200, headers: { "Content-Type": "application/json" } }
+            );
+        }
+
+        // Select active FCM tokens joined with user notification settings (restricted to verified students)
+        const targetUserIds = user_id ? [user_id] : (user_ids && user_ids.length > 0 ? user_ids : verifiedUserIds);
+
         let query = supabase
             .from("user_push_tokens_t")
             .select("fcm_token, user_id, user_notification_settings_t!inner(new_offers, offers_ending_soon, new_brands, referral_verified, milestones, nearby_deals, announcements)")
-            .eq("is_active", true);
-
-        if (user_id) {
-            query = query.eq("user_id", user_id);
-        } else if (user_ids && user_ids.length > 0) {
-            query = query.in("user_id", user_ids);
-        }
+            .eq("is_active", true)
+            .in("user_id", targetUserIds);
 
         const { data: rawTokens, error: dbError } = await query;
         
         // Fallback: If inner join returns empty (user has no settings row yet), fetch tokens directly
         let finalTokens: any[] = [];
         if (dbError || !rawTokens || rawTokens.length === 0) {
-            let altQuery = supabase.from("user_push_tokens_t").select("fcm_token, user_id").eq("is_active", true);
-            if (user_id) altQuery = altQuery.eq("user_id", user_id);
-            else if (user_ids && user_ids.length > 0) altQuery = altQuery.in("user_id", user_ids);
+            let altQuery = supabase
+                .from("user_push_tokens_t")
+                .select("fcm_token, user_id")
+                .eq("is_active", true)
+                .in("user_id", targetUserIds);
             const { data: fallbackTokens } = await altQuery;
             finalTokens = fallbackTokens || [];
         } else {

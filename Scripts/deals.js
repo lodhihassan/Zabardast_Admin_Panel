@@ -138,7 +138,247 @@ window.addEventListener('DOMContentLoaded', async () => {
             }
         });
     }
+
+    const dealForm = document.getElementById('dealForm');
+    if (dealForm) {
+        dealForm.addEventListener('submit', handleDealFormSubmit);
+    }
 });
+
+async function uploadDealBannerFile(file, vendorId, oldFileId = null) {
+    const bucket = STORAGE_BUCKET_NAME;
+    const lastDotIndex = file.name.lastIndexOf('.');
+    let nameWithoutExt = file.name;
+    let ext = '';
+    if (lastDotIndex > 0) {
+        nameWithoutExt = file.name.substring(0, lastDotIndex);
+        ext = file.name.substring(lastDotIndex);
+    }
+    const cleanName = nameWithoutExt.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const timestampedFileName = `${cleanName}_${Date.now()}${ext}`;
+    const storagePath = `vendor_${vendorId}/${timestampedFileName}`;
+    const fullPath = `${bucket}/${storagePath}`;
+
+    const { error: storageErr } = await window.sbClient.storage.from(bucket).upload(storagePath, file, { upsert: true });
+    if (storageErr) throw new Error(`Storage Upload Error (${bucket}/${storagePath}): ${storageErr.message}`);
+
+    const { data: fileRecord, error: fileErr } = await window.sbClient
+        .from('uploaded_files_t')
+        .insert({
+            file_name: timestampedFileName,
+            file_path: fullPath,
+            file_size_bytes: file.size,
+            mime_type: file.type
+        })
+        .select('file_id')
+        .single();
+
+    if (fileErr) {
+        await window.sbClient.storage.from(bucket).remove([storagePath]);
+        throw new Error(`Database File Record Error: ${fileErr.message}`);
+    }
+
+    if (oldFileId) {
+        try {
+            const { data: oldFile } = await window.sbClient
+                .from('uploaded_files_t')
+                .select('file_path')
+                .eq('file_id', oldFileId)
+                .single();
+
+            if (oldFile && oldFile.file_path) {
+                const relativePath = oldFile.file_path.startsWith(`${bucket}/`)
+                    ? oldFile.file_path.replace(`${bucket}/`, '')
+                    : oldFile.file_path;
+
+                await window.sbClient.storage.from(bucket).remove([relativePath]);
+            }
+            await window.sbClient.from('uploaded_files_t').delete().eq('file_id', oldFileId);
+        } catch (cleanupErr) {
+            console.warn('Old file cleanup warning:', cleanupErr);
+        }
+    }
+
+    return fileRecord.file_id;
+}
+
+async function handleDealFormSubmit(e) {
+    e.preventDefault();
+
+    const submitBtn = document.getElementById('btnDealFormSubmit');
+    const msgDiv = document.getElementById('formMessage');
+
+    if (submitBtn) submitBtn.disabled = true;
+    if (msgDiv) {
+        msgDiv.style.display = 'block';
+        msgDiv.className = 'message info';
+        msgDiv.textContent = editingDealId ? 'Updating deal...' : 'Creating deal...';
+    }
+
+    try {
+        const category_id = parseInt(document.getElementById('category_id').value);
+        const vendor_id = parseInt(document.getElementById('vendor_id').value);
+        const title = document.getElementById('title').value.trim();
+        const description = document.getElementById('description').value.trim();
+
+        const discount_type = document.getElementById('discount_type').value || null;
+        const discount_prefix = document.getElementById('discount_prefix').value || null;
+        const discount_value = document.getElementById('discount_value').value ? parseFloat(document.getElementById('discount_value').value) : 0;
+        const deal_tag = document.getElementById('deal_tag').value || null;
+        const home_section = document.getElementById('home_section').value || null;
+        const redeem_limit_per_day = document.getElementById('redeem_limit_per_day').value ? parseInt(document.getElementById('redeem_limit_per_day').value) : 1;
+
+        const valid_from = document.getElementById('valid_from').value || null;
+        const valid_until = document.getElementById('valid_until').value || null;
+        const valid_day_from = document.getElementById('valid_day_from').value || '1';
+        const valid_day_to = document.getElementById('valid_day_to').value || '7';
+        const start_time = document.getElementById('start_time').value ? `${document.getElementById('start_time').value}:00` : '00:00:00';
+        const end_time = document.getElementById('end_time').value ? `${document.getElementById('end_time').value}:00` : '23:59:00';
+        const min_purchase_amount = document.getElementById('min_purchase_amount').value ? parseFloat(document.getElementById('min_purchase_amount').value) : 0;
+        const max_discount_amount = document.getElementById('max_discount_amount').value ? parseFloat(document.getElementById('max_discount_amount').value) : null;
+
+        if (!category_id || !vendor_id || !title || !description) {
+            throw new Error('Please fill in all required fields (Category, Vendor, Title, Description).');
+        }
+
+        let banner_image_id = editingDealBannerImageId;
+        const bannerFileInput = document.getElementById('banner_image');
+        if (bannerFileInput && bannerFileInput.files && bannerFileInput.files.length > 0) {
+            const file = bannerFileInput.files[0];
+            banner_image_id = await uploadDealBannerFile(file, vendor_id, banner_image_id);
+        }
+
+        const adminUser = localStorage.getItem('supabase_admin_user');
+        let created_by = 'Admin';
+        try {
+            const uObj = JSON.parse(adminUser);
+            if (uObj.full_name) created_by = uObj.full_name;
+            else if (uObj.email) created_by = uObj.email;
+        } catch(err) {}
+
+        const dealPayload = {
+            category_id,
+            vendor_id,
+            title,
+            description,
+            discount_type,
+            discount_prefix,
+            discount_value,
+            deal_tag,
+            home_section,
+            redeem_limit_per_day,
+            valid_from: valid_from || new Date().toISOString().split('T')[0],
+            valid_until: valid_until || null,
+            valid_day_from,
+            valid_day_to,
+            start_time,
+            end_time,
+            min_purchase_amount,
+            max_discount_amount,
+            banner_image_id,
+            is_active: true,
+            updated_by: created_by,
+            updated_date: getPKTISOString()
+        };
+
+        let dealId = editingDealId;
+
+        if (editingDealId) {
+            const { error: updateErr } = await window.sbClient
+                .from('deals_t')
+                .update(dealPayload)
+                .eq('deal_id', editingDealId);
+
+            if (updateErr) throw updateErr;
+        } else {
+            dealPayload.created_by = created_by;
+            dealPayload.created_date = getPKTISOString();
+
+            const { data: newDeal, error: insertErr } = await window.sbClient
+                .from('deals_t')
+                .insert(dealPayload)
+                .select('deal_id')
+                .single();
+
+            if (insertErr) throw insertErr;
+            dealId = newDeal.deal_id;
+        }
+
+        // Scope insertion
+        await window.sbClient.from('deal_scope_t').delete().eq('deal_id', dealId);
+
+        const scopeRows = [];
+        const checkedInsts = Array.from(document.querySelectorAll('.institute-checkbox:checked')).map(cb => parseInt(cb.value));
+        checkedInsts.forEach(instId => {
+            scopeRows.push({ deal_id: dealId, category_id, vendor_id, institute_id: instId, scope_type: 'BUY', created_by });
+        });
+
+        const checkedBranches = Array.from(document.querySelectorAll('.branch-checkbox:checked')).map(cb => parseInt(cb.value));
+        checkedBranches.forEach(bId => {
+            scopeRows.push({ deal_id: dealId, category_id, vendor_id, branch_id: bId, scope_type: 'BUY', created_by });
+        });
+
+        const checkedProds = Array.from(document.querySelectorAll('.product-checkbox:checked')).map(cb => parseInt(cb.value));
+        checkedProds.forEach(pId => {
+            scopeRows.push({ deal_id: dealId, category_id, vendor_id, product_id: pId, scope_type: 'BUY', created_by });
+        });
+
+        const checkedSubProds = Array.from(document.querySelectorAll('.sub-product-checkbox:checked')).map(cb => parseInt(cb.value));
+        checkedSubProds.forEach(spId => {
+            scopeRows.push({ deal_id: dealId, category_id, vendor_id, sub_product_id: spId, scope_type: 'BUY', created_by });
+        });
+
+        const checkedRewardProds = Array.from(document.querySelectorAll('.reward-product-checkbox:checked')).map(cb => parseInt(cb.value));
+        checkedRewardProds.forEach(pId => {
+            scopeRows.push({ deal_id: dealId, category_id, vendor_id, product_id: pId, scope_type: 'GET', created_by });
+        });
+
+        const checkedRewardSubProds = Array.from(document.querySelectorAll('.reward-sub-product-checkbox:checked')).map(cb => parseInt(cb.value));
+        checkedRewardSubProds.forEach(spId => {
+            scopeRows.push({ deal_id: dealId, category_id, vendor_id, sub_product_id: spId, scope_type: 'GET', created_by });
+        });
+
+        if (scopeRows.length > 0) {
+            const { error: scopeErr } = await window.sbClient.from('deal_scope_t').insert(scopeRows);
+            if (scopeErr) console.warn('Error inserting deal scopes:', scopeErr);
+        }
+
+        // Fine print insertion
+        await window.sbClient.from('deal_fine_print_t').delete().eq('deal_id', dealId);
+
+        if (finePrintList && finePrintList.length > 0) {
+            const finePrintRows = finePrintList.map((instruction, idx) => ({
+                deal_id: dealId,
+                instruction,
+                instruction_text: instruction,
+                order_by: idx + 1,
+                created_by
+            }));
+            const { error: fpErr } = await window.sbClient.from('deal_fine_print_t').insert(finePrintRows);
+            if (fpErr) console.warn('Error inserting fine prints:', fpErr);
+        }
+
+        showToast(editingDealId ? `Deal #${dealId} updated successfully!` : `Deal #${dealId} created successfully!`, 'success');
+
+        if (msgDiv) {
+            msgDiv.className = 'message success';
+            msgDiv.textContent = editingDealId ? `Deal #${dealId} updated successfully!` : `Deal #${dealId} created successfully!`;
+        }
+
+        resetDealFormToCreate(true);
+        switchDealsView('view', false);
+
+    } catch (err) {
+        console.error('Error saving deal:', err);
+        showToast('Failed to save deal: ' + err.message, 'error', 10000);
+        if (msgDiv) {
+            msgDiv.className = 'message danger';
+            msgDiv.textContent = 'Error: ' + err.message;
+        }
+    } finally {
+        if (submitBtn) submitBtn.disabled = false;
+    }
+}
 
 function switchDealsView(view, fromTabClick = true) {
     const tabCreate = document.getElementById('tabBtnCreate');
@@ -164,7 +404,7 @@ function switchDealsView(view, fromTabClick = true) {
 
 async function loadCategories() {
     try {
-        const { data: categories, error } = await window.sbClient.from('categories_t').select('category_id, name').order('name');
+        const { data: categories, error } = await window.sbClient.from('categories_t').select('category_id, name').eq('is_active', true).order('name');
         if (error) throw error;
 
         const catSelect = document.getElementById('category_id');
@@ -215,7 +455,7 @@ async function populateVendorsForCategory(categoryId, selectedVendorIdToSet = nu
     }
 
     try {
-        let query = window.sbClient.from('vendors_t').select('vendor_id, name').eq('category_id', categoryId).order('name');
+        let query = window.sbClient.from('vendors_t').select('vendor_id, name').eq('category_id', categoryId).eq('is_active', true).order('name');
 
         if (activeVendorLock && activeVendorLock.vendor_id) {
             query = query.eq('vendor_id', activeVendorLock.vendor_id);
@@ -268,7 +508,7 @@ async function populateBranchesAndProductsForVendor(vendorId) {
     }
 
     try {
-        const { data: branches } = await window.sbClient.from('branches_t').select('branch_id, branch_name').eq('vendor_id', vendorId);
+        const { data: branches } = await window.sbClient.from('branches_t').select('branch_id, branch_name').eq('vendor_id', vendorId).eq('is_active', true);
         branchContainer.innerHTML = '';
         if (branches && branches.length > 0) {
             branches.forEach(b => {
@@ -280,7 +520,7 @@ async function populateBranchesAndProductsForVendor(vendorId) {
             branchContainer.innerHTML = '<span style="color: gray; font-size: 12px;">No branches for this vendor.</span>';
         }
 
-        const { data: products } = await window.sbClient.from('products_t').select('product_id, product_name').eq('vendor_id', vendorId);
+        const { data: products } = await window.sbClient.from('products_t').select('product_id, product_name').eq('vendor_id', vendorId).eq('is_active', true);
         prodContainer.innerHTML = '';
         if (rewardProdContainer) rewardProdContainer.innerHTML = '';
 
@@ -361,7 +601,8 @@ async function loadSubProductsForCheckedProducts() {
         const { data: subProds, error } = await window.sbClient
             .from('sub_products_t')
             .select('sub_product_id, sub_product_name, product_id')
-            .in('product_id', checkedProds);
+            .in('product_id', checkedProds)
+            .eq('is_active', true);
 
         if (error) throw error;
 
@@ -395,7 +636,8 @@ async function loadSubProductsForRewardCheckedProducts() {
         const { data: subProds, error } = await window.sbClient
             .from('sub_products_t')
             .select('sub_product_id, sub_product_name, product_id')
-            .in('product_id', checkedProds);
+            .in('product_id', checkedProds)
+            .eq('is_active', true);
 
         if (error) throw error;
 

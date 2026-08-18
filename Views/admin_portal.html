@@ -75,51 +75,33 @@
         <!-- MAIN CONTENT AREA -->
         <div class="main-content">
 
-            <!-- CATALOG VIEW -->
+            <!-- CATALOG & BRANCH MANAGER VIEW -->
             <div id="view-catalog" class="page-view active">
-                <div class="page-header">
-                    <div>
-                        <h2>Catalog Setup Manager</h2>
-                        <p>Manage Categories, Vendors, Branches, Products & Sub-Products with Image Bucket Uploads</p>
-                    </div>
-                </div>
-                <iframe id="catalogIframe" src="catalog.html?v=2.4" style="width: 100%; height: calc(100vh - 130px); border: 1px solid var(--card-border); border-radius: 14px; background: white;"></iframe>
+                <iframe id="catalogIframe" src="catalog.html?v=12.0" style="width: 100%; height: calc(100vh - 32px); border: none; background: transparent;"></iframe>
             </div>
 
             <!-- DEALS MANAGER VIEW -->
             <div id="view-deals" class="page-view">
-                <div class="page-header">
-                    <div>
-                        <h2>Deals Manager</h2>
-                        <p>Create & Target Deals with Institutes, Branches, Buy/Get Products & View All Created Deals</p>
-                    </div>
-                </div>
-                <iframe id="dealsIframe" src="deals.html?v=1.2" style="width: 100%; height: calc(100vh - 130px); border: 1px solid var(--card-border); border-radius: 14px; background: white;"></iframe>
+                <iframe id="dealsIframe" src="deals.html?v=11.0" style="width: 100%; height: calc(100vh - 32px); border: none; background: transparent;"></iframe>
             </div>
 
             <!-- REDEMPTION HISTORY VIEW -->
             <div id="view-redemptions" class="page-view">
-                <div class="page-header">
-                    <div>
-                        <h2>Redemption History</h2>
-                        <p>Track real-time deal redemptions by branch, student, date range, and vendor staff</p>
-                    </div>
-                </div>
-                <iframe id="redemptionsIframe" src="redemption_history.html?v=1.0" style="width: 100%; height: calc(100vh - 130px); border: 1px solid var(--card-border); border-radius: 14px; background: white;"></iframe>
+                <iframe id="redemptionsIframe" src="redemption_history.html?v=6.0" style="width: 100%; height: calc(100vh - 32px); border: none; background: transparent;"></iframe>
             </div>
 
             <!-- GENERAL PARAMETERS VIEW -->
             <div id="view-params" class="page-view">
-                <div class="page-header">
-                    <div>
-                        <h2>General Parameters Manager</h2>
-                        <p>Manage System Parameters</p>
+                <div class="header-bar">
+                    <div class="header-title-group">
+                        <h1>⚙️ General Parameters Manager</h1>
+                        <p>Manage System Parameters & Details</p>
                     </div>
                 </div>
 
                 <!-- Master-Detail Context Bar -->
                 <div id="paramContextBar" class="context-breadcrumb-bar">
-                    <span id="paramContextText" style="font-size: 12px; font-weight: 700; color: #3730a3;">Active Header Filter: None (Showing all details)</span>
+                    <span id="paramContextText" style="font-size: 11.5px; font-weight: 700; color: #3730a3;">Active Header Filter: None (Showing all details)</span>
                     <button type="button" class="btn-sm" style="background: #ffffff; border: 1px solid #c7d2fe; color: #3730a3; padding: 4px 10px; border-radius: 6px; font-weight: 700; cursor: pointer;" onclick="resetParamHeaderContext()">Reset Selection Context</button>
                 </div>
 
@@ -161,16 +143,16 @@
 
             <!-- INSTITUTES & CAMPUSES VIEW -->
             <div id="view-institutes" class="page-view">
-                <div class="page-header">
-                    <div>
-                        <h2>Institutes & Campuses Manager</h2>
+                <div class="header-bar">
+                    <div class="header-title-group">
+                        <h1>🏫 Institutes & Campuses Manager</h1>
                         <p>Manage Target Educational Institutes & Campuses</p>
                     </div>
                 </div>
 
                 <!-- Master-Detail Context Bar -->
                 <div id="instContextBar" class="context-breadcrumb-bar">
-                    <span id="instContextText" style="font-size: 12px; font-weight: 700; color: #3730a3;">Active Institute Filter: None (Showing all campuses)</span>
+                    <span id="instContextText" style="font-size: 11.5px; font-weight: 700; color: #3730a3;">Active Institute Filter: None (Showing all campuses)</span>
                     <button type="button" class="btn-sm" style="background: #ffffff; border: 1px solid #c7d2fe; color: #3730a3; padding: 4px 10px; border-radius: 6px; font-weight: 700; cursor: pointer;" onclick="resetInstituteContext()">Reset Selection Context</button>
                 </div>
 
@@ -212,35 +194,17 @@
 
             <!-- STUDENT VERIFICATIONS VIEW -->
             <div id="view-verifications" class="page-view">
-                <div class="page-header">
-                    <div>
-                        <h2>Student Verification Manager</h2>
-                        <p>Review student verification applications, inspect CNIC & Student Cards, and approve/reject profile activations.</p>
-                    </div>
-                </div>
-                <iframe id="verificationsIframe" src="student_verifications.html?v=1.0" style="width: 100%; height: calc(100vh - 160px); border: 1px solid var(--card-border); border-radius: 14px; background: white;"></iframe>
+                <iframe id="verificationsIframe" src="student_verifications.html?v=8.0" style="width: 100%; height: calc(100vh - 32px); border: none; background: transparent;"></iframe>
             </div>
 
             <!-- NOTIFICATIONS MANAGER VIEW -->
             <div id="view-notifications" class="page-view">
-                <div class="page-header">
-                    <div>
-                        <h2>Notifications Center</h2>
-                        <p>Track notification delivery logs, student read/unread statuses, and broadcast custom messages.</p>
-                    </div>
-                </div>
-                <iframe id="notificationsIframe" src="admin_notifications.html?v=1.0" style="width: 100%; height: calc(100vh - 160px); border: 1px solid var(--card-border); border-radius: 14px; background: white;"></iframe>
+                <iframe id="notificationsIframe" src="admin_notifications.html?v=9.0" style="width: 100%; height: calc(100vh - 32px); border: none; background: transparent;"></iframe>
             </div>
 
             <!-- REFERRAL REWARDS MANAGER VIEW -->
             <div id="view-referrals" class="page-view">
-                <div class="page-header">
-                    <div>
-                        <h2>Referral Rewards Manager</h2>
-                        <p>Configure & manage milestone referral reward tiers for students (Admin Only).</p>
-                    </div>
-                </div>
-                <iframe id="referralsIframe" src="referral_rewards.html?v=1.0" style="width: 100%; height: calc(100vh - 160px); border: 1px solid var(--card-border); border-radius: 14px; background: white;"></iframe>
+                <iframe id="referralsIframe" src="referral_rewards.html?v=6.0" style="width: 100%; height: calc(100vh - 32px); border: none; background: transparent;"></iframe>
             </div>
 
         </div>
