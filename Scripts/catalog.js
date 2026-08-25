@@ -63,7 +63,8 @@ function isVendorUserRole() {
 
     const scopedVendorId = urlParams.get('vendor_id') || userObj.vendor_id;
     const userRole = urlParams.get('role') || userObj.role_code;
-    return !!(userRole === 'V' || userRole === 'VM' || userRole === 'BV' || (scopedVendorId && userRole !== 'A'));
+    const roleId = userObj.role_id;
+    return !!(userRole === 'V' || userRole === 'VM' || userRole === 'BV' || roleId == 2 || roleId == 4 || (scopedVendorId && userRole !== 'A' && roleId != 1));
 }
 
 function enforceVendorContext() {
@@ -171,7 +172,7 @@ async function switchActiveTab(tabName) {
     if (titleEl) titleEl.textContent = `${titlePrefix} List`;
 
     await reloadCoreMasterData();
-    if (tabName === 'branch') {
+    if (tabName === 'branch' || tabName === 'vendor') {
         await fetchBranchVendorUsers();
     }
 
@@ -208,6 +209,8 @@ async function reloadCoreMasterData() {
                 { abbreviation: 'C', detail_name: 'Cashier' }
             ];
         }
+
+        await fetchBranchVendorUsers();
     } catch (err) {
         console.error('Error fetching master data:', err);
         allVendorRoles = [
@@ -228,7 +231,7 @@ async function fetchBranchVendorUsers() {
 
         const { data: sysUsers } = await window.sbClient
             .from('users_t')
-            .select('user_id, email');
+            .select('user_id, email, role_id');
         allSystemUsers = sysUsers || [];
     } catch (err) {
         console.error('Error fetching vendor users:', err);
@@ -336,6 +339,7 @@ async function fetchRecordsList() {
             if (selectedCategoryId) {
                 query = query.eq('category_id', selectedCategoryId);
             }
+            await fetchBranchVendorUsers();
         }
         else if (currentTab === 'branch') {
             query = window.sbClient.from('branches_t').select('*, vendors_t(name, category_id)').order('order_by', { ascending: true });

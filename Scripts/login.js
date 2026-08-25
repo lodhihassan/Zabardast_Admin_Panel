@@ -143,6 +143,8 @@ async function handleSignInSubmit(e) {
                 }
                 if (!roleCode && uData.role_code) roleCode = uData.role_code;
                 if (!roleCode && (uData.role_id === 1 || uData.role_id === '1')) roleCode = 'A';
+                if (!roleCode && (uData.role_id === 2 || uData.role_id === '2')) roleCode = 'V';
+                if (!roleCode && (uData.role_id === 4 || uData.role_id === '4')) roleCode = 'BV';
             }
 
             if (vuData) {
@@ -161,7 +163,8 @@ async function handleSignInSubmit(e) {
             const isMainVendor = (
                 (vuData && (vuData.branch_id === null || vuData.branch_id === undefined)) ||
                 roleCode === 'V' ||
-                roleCode === 'VM'
+                roleCode === 'VM' ||
+                (uData && (uData.role_id === 2 || uData.role_id === '2'))
             );
 
             const isBranchVendor = (
@@ -199,6 +202,7 @@ async function handleSignInSubmit(e) {
                 user_id: data.user.id,
                 email: data.user.email,
                 full_name: userDisplayName,
+                role_id: uData?.role_id || (isAdmin ? 1 : 2),
                 role_code: isAdmin ? 'A' : (roleCode || 'V'),
                 role_name: isAdmin ? 'System Admin' : (roleName || 'Vendor User'),
                 vendor_id: vuData?.vendor_id || null,
