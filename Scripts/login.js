@@ -69,19 +69,18 @@ async function loadAuthRoles() {
         if (error || !roles || roles.length === 0) {
             roleSelect.innerHTML = `
                 <option value="">-- Select Role --</option>
-                <option value="A">Admin</option>
-                <option value="V">Vendor</option>
                 <option value="S">Student</option>`;
             return;
         }
         roleSelect.innerHTML = `<option value="">-- Select Role --</option>` +
-            roles.map(r => `<option value="${r.role_code}">${r.role_name}</option>`).join('');
+            roles
+                .filter(r => r.role_code === 'S')
+                .map(r => `<option value="${r.role_code}">${r.role_name}</option>`)
+                .join('');
     } catch (err) {
         console.error('Error loading roles:', err);
         roleSelect.innerHTML = `
             <option value="">-- Select Role --</option>
-            <option value="A">Admin</option>
-            <option value="V">Vendor</option>
             <option value="S">Student</option>`;
     }
 }
@@ -244,6 +243,10 @@ async function handleSignUpSubmit(e) {
 
     if (!roleCode) {
         showGateAlert('Please select a valid user role!', 'error');
+        return;
+    }
+    if (roleCode !== 'S') {
+        showGateAlert('Privileged accounts must be created by an authorized administrator.', 'error');
         return;
     }
     if (!fullName || !email || !password) {

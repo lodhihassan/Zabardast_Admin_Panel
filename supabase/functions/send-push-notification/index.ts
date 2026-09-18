@@ -5,12 +5,17 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "https://ypxbpwufoioxnvixwmqq.supabase.co";
-const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY") || "sb_publishable_lLB4-6dkBBrNIdLUS89urQ_HhL_SrXs";
-const FIREBASE_PROJECT_ID = Deno.env.get("FIREBASE_PROJECT_ID") || "zabardast-c4e25";
-const FIREBASE_CLIENT_EMAIL = Deno.env.get("FIREBASE_CLIENT_EMAIL") || "firebase-adminsdk-fbsvc@zabardast-c4e25.iam.gserviceaccount.com";
-const rawPrivateKey = Deno.env.get("FIREBASE_PRIVATE_KEY") || `-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDlG9u2Gu2h1kOj\nR7hJQIS4MPefMIIvxqFw/m6vkhgfiv8T3W/DeKybPfkSng1UHlAtJhj1BByXtshO\nXnmCqsHB8cDwq4ewhDvxEuIqEvnHwgo5zZg8lLZ1dPxWlNrO0H/lMgstSAMNNLqE\nUQDjupZ688og/IQkGPOrCEaqcS64n1TKUehwJUZbFNFWXm8Ai5x5CXMRH7/V7buw\npJl6RhUOheTBHDShFae4NcVKlDT/A9U/lPQsZl4+KlVxuAOofZTObywWq7oov/pn\nKj1YfnDhK14MdrqBDHcyjlemz1Xv41oXaul2JI3OPRReYc76T1jmMAQ637c3brC8\nNanrW9mnAgMBAAECggEALuxeOvVX7xnxn2rseQBATnMk/BMUztEpNnm91LKgwzEW\nHgzvu4KnI2J1dVUumKhetmiDmwb9DiuO6dIao+LyLRUk9YXEFCh5GF5MON7LDpkU\nvBL6F4pDtlm/5sG08L+uOhReSqdhjJ5chwYKHxoTgNoWb1wYekYr/b8DrhvhPElu\ndJ+EInEH1H2uQgR0bJcpsm73HljXVxkhDM/2LRXfFTRl6/JalCtMs0UACoD7hxKK\njXYnKXk5tIYx60sG5Ceubw9kYZVpCGpRxr1T/hYHMyDU3lmJxNL7Hp+wdPk07xoL\ndCMCdYCQ38oBP48QRM3cx3H2c5T/4IVW8SmbdwBH2QKBgQD6HcB5tDNwg6Z5fELv\nhpmXdJdDKgYyrqxf/mc9nWspM9Wpx+GfXvMl8I0YMNEEnoc8SXRrMxfVJgPSSj/I\n67lxZlhtbzG1+POhW6ZAWlYSoIzvf0mYGy3CbOwmWZMnwSMcAD4Zf0rSodw1e6X0\nzplXV9V+1qs7A8FW+H6o6YTXLwKBgQDqf5iFyLXlG845paAhAAXoHHlnsXgF8LpN\npodq2k7ee6aWOomF//v7q69w44n9dkGwmggmCHi1+gIh+IE39XeZTtI38iimqxNq\n7J3ALpKdiCZGg9KzN7qaYh39hsOWSKH2xnEqjHRQ0/+74vJ6oTugR9txeptG5Nsp\n02uKlZIHCQKBgAFySJmrlByTdlP/hveRpLO+hd1qkcybO/32H6y4i1UaqqKnuENO\nrkNK59X6+kp3jDqqBhVUn0+pP55otYO48UKZn+tKGFSAExCc0hJPM246JXaBGvDZ\nP2N/c8IpBHPXZxeTXMiS9uDO9NIOXABVbYeWx3JLVYQq2mRhXYImj5EbAoGANz/i\n3rqAaL+ZYimsxbmsqphy3kSJA9VI/9yZkUpoRLEbec/G8SRz6UL1LgLeUzKWnZZd\nDyD11+JUuE5Fm7qg+CUDEJ1kiIhMJegj7tDKSIV4hyqt7P3XYGJ3sHEdCf6I8oyk\nwyKekSCx40HAYbY1RzlG8cCybwyiuoMOlnNRGYkCgYALe48bxkoaE4NIq9l6teay\nRTGpnRDfKG0MKpvD16+obUT5Y79q1iZvMRuID+8rkgNlMKlh9Tj+hjwDLRWgY9Mx\nmk21BddrkVV5PLPvQs1ef6ZcLBTypp/IhpayEyontLaMYl2vPY2txme3ht+UwjaF\ncF6+bE1VF12Mc9DjYVZUAg==\n-----END PRIVATE KEY-----\n`;
-const FIREBASE_PRIVATE_KEY = rawPrivateKey.replace(/\\n/g, "\n");
+function requireEnv(name: string): string {
+    const value = Deno.env.get(name);
+    if (!value) throw new Error(`Missing required environment variable: ${name}`);
+    return value;
+}
+
+const SUPABASE_URL = requireEnv("SUPABASE_URL");
+const SUPABASE_SERVICE_KEY = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+const FIREBASE_PROJECT_ID = requireEnv("FIREBASE_PROJECT_ID");
+const FIREBASE_CLIENT_EMAIL = requireEnv("FIREBASE_CLIENT_EMAIL");
+const FIREBASE_PRIVATE_KEY = requireEnv("FIREBASE_PRIVATE_KEY").replace(/\\n/g, "\n");
 
 // ─── Helper: Proper base64url encoding (required for JWT) ────────────────────
 function toBase64Url(data: string | Uint8Array): string {

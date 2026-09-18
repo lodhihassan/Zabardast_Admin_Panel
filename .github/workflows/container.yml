@@ -1,0 +1,26 @@
+name: Container checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan tracked files for credentials
+        shell: pwsh
+        run: ./Scripts/check-secrets.ps1
+
+      - name: Build production image
+        run: docker build --tag zabardast-admin-panel:test .
+
+      - name: Verify image contents
+        run: |
+          docker run --rm --entrypoint sh zabardast-admin-panel:test -c \
+            'test ! -e /usr/share/nginx/html/database && test ! -e /usr/share/nginx/html/supabase && test ! -e /usr/share/nginx/html/.git'

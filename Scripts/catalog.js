@@ -1382,8 +1382,8 @@ async function handleCreateVendorUser() {
 
     try {
         const authClient = window.supabase.createClient(
-            'https://ypxbpwufoioxnvixwmqq.supabase.co',
-            'sb_publishable_lLB4-6dkBBrNIdLUS89urQ_HhL_SrXs',
+            SUPABASE_URL,
+            SUPABASE_PUBLISHABLE_KEY,
             { auth: { persistSession: false } }
         );
 
