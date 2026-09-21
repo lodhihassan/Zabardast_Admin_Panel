@@ -4,6 +4,8 @@ CREATE OR REPLACE FUNCTION public.fn_redeem_referral_reward(
 )
 RETURNS JSON AS $$
 DECLARE
+    v_is_email_verified BOOLEAN := FALSE;
+    v_student_email VARCHAR(255);
     v_user_reward_id INT;
     v_status VARCHAR(10);
     v_voucher_code VARCHAR(100);
@@ -15,6 +17,22 @@ DECLARE
     v_manual_code VARCHAR(100);
     v_existing_redemption RECORD;
 BEGIN
+    -- 0. Email Verification Check
+    SELECT email, (email_confirmed_at IS NOT NULL)
+    INTO v_student_email, v_is_email_verified
+    FROM auth.users
+    WHERE id = p_user_id;
+
+    IF v_is_email_verified IS NOT TRUE THEN
+        RETURN JSON_BUILD_OBJECT(
+            'success', FALSE,
+            'code', 'EMAIL_VERIFICATION_REQUIRED',
+            'is_email_verified', FALSE,
+            'email', v_student_email,
+            'message', 'Email verification required. Please verify your email address to redeem rewards.'
+        );
+    END IF;
+
     -- 1. Check if the user has unlocked this reward tier and get current status
     SELECT 
         sr.user_reward_id, 
