@@ -63,8 +63,7 @@ function isVendorUserRole() {
 
     const scopedVendorId = urlParams.get('vendor_id') || userObj.vendor_id;
     const userRole = urlParams.get('role') || userObj.role_code;
-    const roleId = userObj.role_id;
-    return !!(userRole === 'V' || userRole === 'VM' || userRole === 'BV' || roleId == 2 || roleId == 4 || (scopedVendorId && userRole !== 'A' && roleId != 1));
+    return !!(userRole === 'V' || userRole === 'VM' || userRole === 'BV' || (scopedVendorId && userRole !== 'A'));
 }
 
 function enforceVendorContext() {
@@ -185,13 +184,13 @@ async function switchActiveTab(tabName) {
 // Reload Master Lists
 async function reloadCoreMasterData() {
     try {
-        const { data: cats } = await window.sbClient.from('categories_t').select('category_id, name, order_by, is_active').order('order_by', { ascending: true });
+        const { data: cats } = await window.sbClient.from('categories_t').select('category_id, name, order_by').eq('is_active', true).order('order_by', { ascending: true });
         allCategories = cats || [];
 
-        const { data: vends } = await window.sbClient.from('vendors_t').select('vendor_id, name, category_id, is_active').order('name');
+        const { data: vends } = await window.sbClient.from('vendors_t').select('vendor_id, name, category_id').eq('is_active', true).order('name');
         allVendors = vends || [];
 
-        const { data: prods } = await window.sbClient.from('products_t').select('product_id, product_name, vendor_id, is_active').order('product_name');
+        const { data: prods } = await window.sbClient.from('products_t').select('product_id, product_name, vendor_id').eq('is_active', true).order('product_name');
         allProducts = prods || [];
 
         const { data: vRoles } = await window.sbClient
@@ -209,8 +208,6 @@ async function reloadCoreMasterData() {
                 { abbreviation: 'C', detail_name: 'Cashier' }
             ];
         }
-
-        await fetchBranchVendorUsers();
     } catch (err) {
         console.error('Error fetching master data:', err);
         allVendorRoles = [
@@ -231,7 +228,7 @@ async function fetchBranchVendorUsers() {
 
         const { data: sysUsers } = await window.sbClient
             .from('users_t')
-            .select('user_id, email, role_id');
+            .select('user_id, email');
         allSystemUsers = sysUsers || [];
     } catch (err) {
         console.error('Error fetching vendor users:', err);
@@ -484,23 +481,10 @@ async function selectRecordForEdit(record) {
     document.getElementById('modeBadge').textContent = 'Mode: Update';
     document.getElementById('modeBadge').style.background = '#3b82f6';
     document.getElementById('btnSubmitForm').textContent = `Update ${config.title}`;
-    
-    const delContainer = document.getElementById('deleteBtnContainer');
-    if (delContainer) {
-        delContainer.style.display = 'block';
-        const delBtn = delContainer.querySelector('button');
-        if (delBtn) {
-            const isRecActive = record.is_active !== false;
-            if (isRecActive) {
-                delBtn.textContent = 'Delete';
-                delBtn.className = 'btn-danger-full';
-                delBtn.style.background = '#ef4444';
-            } else {
-                delBtn.textContent = 'Activate';
-                delBtn.className = 'btn-primary';
-                delBtn.style.background = '#10b981';
-            }
-        }
+    document.getElementById('deleteBtnContainer').style.display = 'block';
+
+    if (currentTab === 'vendor' || currentTab === 'branch') {
+        await fetchBranchVendorUsers();
     }
 
     renderFormFields();
@@ -607,6 +591,7 @@ async function selectRecordForEdit(record) {
 // Reset Form
 function resetFormToCreate() {
     selectedRecord = null;
+    editingVendorUserId = null;
     const config = tabConfigs[currentTab];
 
     const editIdEl = document.getElementById('editingRecordId');
@@ -670,7 +655,7 @@ function renderFormFields() {
         const currentVendorId = selectedRecord?.vendor_id;
         let activeMainVendorUsers = [];
         if (currentVendorId) {
-            activeMainVendorUsers = allVendorUsers.filter(u => u.vendor_id == currentVendorId && !u.branch_id);
+            activeMainVendorUsers = allVendorUsers.filter(u => u.vendor_id == currentVendorId && (!u.branch_id || u.branch_id === null || u.branch_id === 'null'));
         }
 
         container.innerHTML = `
@@ -725,9 +710,7 @@ function renderFormFields() {
 
         ${currentVendorId ? `
         <div style="margin-bottom: 16px;">
-            <button type="button" class="${selectedRecord?.is_active !== false ? 'btn-danger-full' : 'btn-primary'}" style="width: 100%; ${selectedRecord?.is_active === false ? 'background: #10b981;' : ''}" onclick="softDeleteCurrentRecord()">
-                ${selectedRecord?.is_active !== false ? 'Delete' : 'Activate'}
-            </button>
+            <button type="button" class="btn-danger-full" style="width: 100%;" onclick="softDeleteCurrentRecord()">Delete</button>
         </div>` : ''}
 
         ${!currentVendorId ? `
@@ -801,19 +784,21 @@ function renderFormFields() {
 
                         return `
                             <div class="vstaff-item-card">
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <div class="vstaff-user-avatar">${initials}</div>
-                                    <div>
-                                        <div style="font-size: 13px; font-weight: 800; color: #1e1b4b;">
-                                            ${u.full_name} 
-                                            <span class="role-pill role-pill-${rCode}">${rName}</span>
-                                        </div>
-                                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
-                                            📞 ${u.phone_number || 'N/A'} | ✉️ ${displayEmail}
-                                        </div>
+                                <div class="vstaff-user-avatar">${initials}</div>
+                                <div class="vstaff-info-block">
+                                    <div class="vstaff-name-row">
+                                        <span>${u.full_name}</span> 
+                                        <span class="role-pill role-pill-${rCode}">${rName}</span>
+                                    </div>
+                                    <div class="vstaff-contact-row">
+                                        <span>📞 ${u.phone_number || 'N/A'}</span>
+                                        <span>✉️ ${displayEmail}</span>
                                     </div>
                                 </div>
-                                <button type="button" class="btn-sm btn-delete" onclick="deleteVendorUser('${u.user_id}')">Remove</button>
+                                <div class="vstaff-actions">
+                                    <button type="button" class="btn-sm btn-edit" onclick="editVendorUser('${u.user_id}')">✏️ Edit</button>
+                                    <button type="button" class="btn-sm btn-delete" onclick="deleteVendorUser('${u.user_id}')">Remove</button>
+                                </div>
                             </div>
                         `;
                     }).join('')}
@@ -884,9 +869,7 @@ function renderFormFields() {
 
         ${currentBranchId ? `
         <div style="margin-bottom: 16px;">
-            <button type="button" class="${selectedRecord?.is_active !== false ? 'btn-danger-full' : 'btn-primary'}" style="width: 100%; ${selectedRecord?.is_active === false ? 'background: #10b981;' : ''}" onclick="softDeleteCurrentRecord()">
-                ${selectedRecord?.is_active !== false ? 'Delete' : 'Activate'}
-            </button>
+            <button type="button" class="btn-danger-full" style="width: 100%;" onclick="softDeleteCurrentRecord()">Delete</button>
         </div>` : ''}
 
         ${!currentBranchId ? `
@@ -1189,39 +1172,29 @@ async function rollbackManagedUpload(uploadInfo) {
     }
 }
 
-// Status Toggle Handler (Activates or Deactivates records)
-async function softDeleteById(id, forcedStatus = null) {
+// Soft Delete Handler (Sets is_active = false)
+async function softDeleteById(id) {
+    if (!confirm('Are you sure you want to delete this record?')) return;
     const config = tabConfigs[currentTab];
-    const targetRec = currentRecords.find(r => r[config.pk] == id);
-    const currentActive = targetRec ? (targetRec.is_active !== false) : true;
-    const newStatus = forcedStatus !== null ? forcedStatus : !currentActive;
-    const actionText = newStatus ? 'activate' : 'delete';
-
-    if (!confirm(`Are you sure you want to ${actionText} this ${config.title}?`)) return;
 
     try {
         const { error } = await window.sbClient
             .from(config.table)
-            .update({ is_active: newStatus, updated_by: getCleanAdminUser() })
+            .update({ is_active: false, updated_by: getCleanAdminUser() })
             .eq(config.pk, id);
 
         if (error) throw error;
-        showAlert(`✅ Record #${id} ${newStatus ? 'activated' : 'deleted'} successfully!`);
+        showAlert(`⚠️ Record #${id} deactivated (is_active = false)`);
         if (selectedRecord && selectedRecord[config.pk] === id) resetFormToCreate();
-        await reloadCoreMasterData();
-        renderLeftFilterBar();
         await fetchRecordsList();
     } catch (err) {
-        showAlert(`❌ Failed to update status: ${err.message}`, 'error');
+        showAlert(`❌ Failed to delete: ${err.message}`, 'error');
     }
 }
 
 async function softDeleteCurrentRecord() {
     const id = document.getElementById('editingRecordId').value;
-    if (id) {
-        const isRecActive = selectedRecord ? (selectedRecord.is_active !== false) : true;
-        await softDeleteById(id, !isRecActive);
-    }
+    if (id) await softDeleteById(id);
 }
 
 function updateHeaderBarVisibility() {
@@ -1248,15 +1221,24 @@ function editVendorUser(userId) {
     const pwEl = document.getElementById('f_vuser_password');
     const btn = document.getElementById('btnCreateVendorUser');
 
-    if (roleEl) roleEl.value = u.vendor_role || '';
-    if (fnEl) fnEl.value = u.full_name || '';
+    if (roleEl) roleEl.value = u.vendor_role || (currentTab === 'vendor' ? 'A' : '');
+    if (fnEl) {
+        fnEl.value = u.full_name || '';
+        fnEl.focus();
+    }
     if (phEl) phEl.value = u.phone_number || '';
 
     const uEmailObj = allSystemUsers.find(sysU => sysU.user_id === userId);
-    if (emEl) emEl.value = uEmailObj ? uEmailObj.email : '';
-    if (pwEl) pwEl.placeholder = '(Leave empty to keep unchanged)';
+    if (emEl) {
+        emEl.value = uEmailObj ? uEmailObj.email : '';
+        emEl.disabled = true;
+    }
+    if (pwEl) {
+        pwEl.value = '';
+        pwEl.placeholder = 'New password (leave blank to keep unchanged)';
+    }
 
-    if (btn) btn.textContent = '✏️ Update Vendor Staff User';
+    if (btn) btn.textContent = currentTab === 'vendor' ? '✏️ Update Main Vendor Admin' : '✏️ Update Vendor Staff User';
 
     let cancelBtn = document.getElementById('btnCancelVendorUserEdit');
     if (!cancelBtn && btn) {
@@ -1287,13 +1269,19 @@ function resetVendorUserForm() {
     const btn = document.getElementById('btnCreateVendorUser');
     const cancelBtn = document.getElementById('btnCancelVendorUserEdit');
 
-    if (roleEl) roleEl.value = '';
+    if (roleEl) roleEl.value = currentTab === 'vendor' ? 'A' : '';
     if (fnEl) fnEl.value = '';
     if (phEl) phEl.value = '';
-    if (emEl) emEl.value = '';
-    if (pwEl) { pwEl.value = ''; pwEl.placeholder = '••••••••'; }
+    if (emEl) {
+        emEl.value = '';
+        emEl.disabled = false;
+    }
+    if (pwEl) {
+        pwEl.value = '';
+        pwEl.placeholder = '••••••••';
+    }
 
-    if (btn) btn.textContent = '➕ Register Vendor User';
+    if (btn) btn.textContent = currentTab === 'vendor' ? '➕ Register Main Vendor Admin' : '➕ Register Vendor User';
     if (cancelBtn) cancelBtn.style.display = 'none';
 }
 
@@ -1323,8 +1311,13 @@ async function handleCreateVendorUser() {
     }
 
     let roleCode = document.getElementById('f_vuser_role')?.value;
-    if (currentTab === 'vendor' || !roleCode) {
+    if (currentTab === 'vendor') {
         roleCode = 'A';
+    } else if (!roleCode && editingVendorUserId) {
+        const existingU = allVendorUsers.find(u => u.user_id === editingVendorUserId);
+        roleCode = existingU?.vendor_role || 'C';
+    } else if (!roleCode) {
+        roleCode = 'C';
     }
 
     const fullName = document.getElementById('f_vuser_fullname')?.value.trim();
@@ -1338,10 +1331,27 @@ async function handleCreateVendorUser() {
             return;
         }
 
+        const newPassword = password ? password.trim() : '';
+        if (newPassword && newPassword.length < 6) {
+            showAlert('🚨 New Password must be at least 6 characters long!', 'error');
+            return;
+        }
+
         const btn = document.getElementById('btnCreateVendorUser');
         if (btn) { btn.disabled = true; btn.textContent = 'Updating Account...'; }
 
         try {
+            // 1. If new password provided, update it in auth.users
+            if (newPassword) {
+                const { data: pwRes, error: pwErr } = await window.sbClient.rpc('fn_admin_update_user_password', {
+                    p_user_id: editingVendorUserId,
+                    p_new_password: newPassword
+                });
+                if (pwErr) throw new Error('Password update error: ' + pwErr.message);
+                if (pwRes && !pwRes.success) throw new Error(pwRes.message || 'Password update failed');
+            }
+
+            // 2. Update profile details in vendor_users_t
             const cleanUser = getCleanAdminUser();
             const { error: vuUpErr } = await window.sbClient
                 .from('vendor_users_t')
@@ -1355,14 +1365,23 @@ async function handleCreateVendorUser() {
 
             if (vuUpErr) throw vuUpErr;
 
-            showAlert(`✅ Vendor Staff User '${fullName}' updated successfully!`);
+            const roleTitle = currentTab === 'vendor' ? 'Main Vendor Admin' : 'Vendor Staff User';
+            const pwMsg = newPassword ? ' & Password' : '';
+            showAlert(`✅ ${roleTitle} '${fullName}' details${pwMsg} updated successfully!`);
             resetVendorUserForm();
             await fetchBranchVendorUsers();
-            renderFormFields();
+            if (selectedRecord) {
+                await selectRecordForEdit(selectedRecord);
+            } else {
+                renderFormFields();
+            }
         } catch (err) {
             showAlert(`❌ Update Error: ${err.message}`, 'error');
         } finally {
-            if (btn) { btn.disabled = false; btn.textContent = '➕ Register Vendor User'; }
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = currentTab === 'vendor' ? '➕ Register Main Vendor Admin' : '➕ Register Vendor User';
+            }
         }
         return;
     }
@@ -1382,8 +1401,8 @@ async function handleCreateVendorUser() {
 
     try {
         const authClient = window.supabase.createClient(
-            SUPABASE_URL,
-            SUPABASE_PUBLISHABLE_KEY,
+            'https://ypxbpwufoioxnvixwmqq.supabase.co',
+            'sb_publishable_lLB4-6dkBBrNIdLUS89urQ_HhL_SrXs',
             { auth: { persistSession: false } }
         );
 
@@ -1434,7 +1453,8 @@ async function handleCreateVendorUser() {
 
         if (vuErr) throw vuErr;
 
-        showAlert(`🎉 Vendor User '${fullName}' registered successfully!`);
+        const roleTitle = currentTab === 'vendor' ? 'Main Vendor Admin' : 'Vendor User';
+        showAlert(`🎉 ${roleTitle} '${fullName}' registered successfully!`);
 
         if (document.getElementById('f_vuser_fullname')) document.getElementById('f_vuser_fullname').value = '';
         if (document.getElementById('f_vuser_email')) document.getElementById('f_vuser_email').value = '';
@@ -1442,12 +1462,19 @@ async function handleCreateVendorUser() {
         if (document.getElementById('f_vuser_phone')) document.getElementById('f_vuser_phone').value = '';
 
         await fetchBranchVendorUsers();
-        renderFormFields();
+        if (selectedRecord) {
+            await selectRecordForEdit(selectedRecord);
+        } else {
+            renderFormFields();
+        }
 
     } catch (err) {
         showAlert(`❌ Vendor User Error: ${err.message}`, 'error');
     } finally {
-        if (btn) { btn.disabled = false; btn.textContent = '➕ Register Vendor User'; }
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = currentTab === 'vendor' ? '➕ Register Main Vendor Admin' : '➕ Register Vendor User';
+        }
     }
 }
 
@@ -1458,7 +1485,11 @@ async function deleteVendorUser(userId) {
         if (error) throw error;
         showAlert('✅ Vendor user account removed.');
         await fetchBranchVendorUsers();
-        renderFormFields();
+        if (selectedRecord) {
+            await selectRecordForEdit(selectedRecord);
+        } else {
+            renderFormFields();
+        }
     } catch (e) {
         showAlert(`❌ Delete error: ${e.message}`, 'error');
     }

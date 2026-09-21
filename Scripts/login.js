@@ -69,18 +69,19 @@ async function loadAuthRoles() {
         if (error || !roles || roles.length === 0) {
             roleSelect.innerHTML = `
                 <option value="">-- Select Role --</option>
+                <option value="A">Admin</option>
+                <option value="V">Vendor</option>
                 <option value="S">Student</option>`;
             return;
         }
         roleSelect.innerHTML = `<option value="">-- Select Role --</option>` +
-            roles
-                .filter(r => r.role_code === 'S')
-                .map(r => `<option value="${r.role_code}">${r.role_name}</option>`)
-                .join('');
+            roles.map(r => `<option value="${r.role_code}">${r.role_name}</option>`).join('');
     } catch (err) {
         console.error('Error loading roles:', err);
         roleSelect.innerHTML = `
             <option value="">-- Select Role --</option>
+            <option value="A">Admin</option>
+            <option value="V">Vendor</option>
             <option value="S">Student</option>`;
     }
 }
@@ -142,8 +143,6 @@ async function handleSignInSubmit(e) {
                 }
                 if (!roleCode && uData.role_code) roleCode = uData.role_code;
                 if (!roleCode && (uData.role_id === 1 || uData.role_id === '1')) roleCode = 'A';
-                if (!roleCode && (uData.role_id === 2 || uData.role_id === '2')) roleCode = 'V';
-                if (!roleCode && (uData.role_id === 4 || uData.role_id === '4')) roleCode = 'BV';
             }
 
             if (vuData) {
@@ -162,8 +161,7 @@ async function handleSignInSubmit(e) {
             const isMainVendor = (
                 (vuData && (vuData.branch_id === null || vuData.branch_id === undefined)) ||
                 roleCode === 'V' ||
-                roleCode === 'VM' ||
-                (uData && (uData.role_id === 2 || uData.role_id === '2'))
+                roleCode === 'VM'
             );
 
             const isBranchVendor = (
@@ -201,7 +199,6 @@ async function handleSignInSubmit(e) {
                 user_id: data.user.id,
                 email: data.user.email,
                 full_name: userDisplayName,
-                role_id: uData?.role_id || (isAdmin ? 1 : 2),
                 role_code: isAdmin ? 'A' : (roleCode || 'V'),
                 role_name: isAdmin ? 'System Admin' : (roleName || 'Vendor User'),
                 vendor_id: vuData?.vendor_id || null,
@@ -243,10 +240,6 @@ async function handleSignUpSubmit(e) {
 
     if (!roleCode) {
         showGateAlert('Please select a valid user role!', 'error');
-        return;
-    }
-    if (roleCode !== 'S') {
-        showGateAlert('Privileged accounts must be created by an authorized administrator.', 'error');
         return;
     }
     if (!fullName || !email || !password) {

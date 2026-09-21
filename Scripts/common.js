@@ -2,23 +2,15 @@
  * Common JavaScript Utilities for Zabardast Admin & Vendor Suite
  */
 
-const appConfig = window.APP_CONFIG || {};
-const SUPABASE_URL = appConfig.SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = appConfig.SUPABASE_PUBLISHABLE_KEY;
-
-if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-    throw new Error('Missing runtime configuration. SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY are required.');
-}
-
 // Supabase Public Storage Base URL
-const PUBLIC_STORAGE_BASE = `${SUPABASE_URL.replace(/\/$/, '')}/storage/v1/object/public/`;
+const PUBLIC_STORAGE_BASE = 'https://ypxbpwufoioxnvixwmqq.supabase.co/storage/v1/object/public/';
 
 // 1. Initialize Supabase Client
 function initSupabaseClient() {
     if (!window.sbClient && typeof supabase !== 'undefined') {
         window.sbClient = supabase.createClient(
-            SUPABASE_URL,
-            SUPABASE_PUBLISHABLE_KEY
+            'https://ypxbpwufoioxnvixwmqq.supabase.co',
+            'sb_publishable_lLB4-6dkBBrNIdLUS89urQ_HhL_SrXs'
         );
     }
     return window.sbClient;

@@ -24,7 +24,7 @@ async function fetchNotificationsData(silent = false) {
     try {
         const [usersRes, profilesRes] = await Promise.all([
             window.sbClient.from('users_t').select('user_id, email'),
-            window.sbClient.from('student_profiles_t').select('user_id, full_name, phone_number, is_verified').eq('is_verified', true)
+            window.sbClient.from('student_profiles_t').select('user_id, full_name, phone_number')
         ]);
 
         const users = usersRes.data || [];
@@ -337,23 +337,7 @@ async function handleSendCustomNotif(e) {
                 });
 
             if (error) throw error;
-
-            // Trigger FCM push notification to all verified students
-            try {
-                const verifiedUserIds = allStudents.map(s => s.user_id);
-                await window.sbClient.functions.invoke('send-push-notification', {
-                    body: {
-                        user_ids: verifiedUserIds,
-                        title: title,
-                        body: body,
-                        notification_type: type
-                    }
-                });
-            } catch (pErr) {
-                console.warn('Push notification trigger warning:', pErr);
-            }
-
-            showToast('🎉 Global notification dispatched to ALL verified students!', 'success');
+            showToast('🎉 Global notification dispatched to ALL students!', 'success');
         } else {
             const targetUserId = document.getElementById('specificStudentSelect').value;
             const { error } = await window.sbClient
@@ -367,22 +351,7 @@ async function handleSendCustomNotif(e) {
                 });
 
             if (error) throw error;
-
-            // Trigger FCM push notification to targeted verified student
-            try {
-                await window.sbClient.functions.invoke('send-push-notification', {
-                    body: {
-                        user_id: targetUserId,
-                        title: title,
-                        body: body,
-                        notification_type: type
-                    }
-                });
-            } catch (pErr) {
-                console.warn('Push notification trigger warning:', pErr);
-            }
-
-            showToast('🎉 Custom notification sent to verified student!', 'success');
+            showToast('🎉 Custom notification sent to student!', 'success');
         }
 
         closeSendModal();

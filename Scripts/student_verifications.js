@@ -233,32 +233,27 @@ function renderCards() {
                 </div>
 
                 <div class="documents-section">
+                    <div class="docs-header">🪪 Verification Documents</div>
                     ${v.has_docs ? `
-                    <button type="button" class="btn-toggle-docs" onclick="toggleDocsSection(this)">
-                        <span>📁 Verification Documents (${(v.student_card_url ? 1 : 0) + (v.cnic_card_url ? 1 : 0)})</span>
-                        <span class="chevron">▼</span>
-                    </button>
-                    <div class="docs-container" style="display: none; margin-top: 6px;">
-                        <div class="docs-grid">
-                            ${v.student_card_url ? `
-                            <div class="doc-thumb-card">
-                                <img src="${v.student_card_url}" class="doc-thumb-img" alt="Student Card" onerror="this.onerror=null; this.src='../Icons/App Icon.png';" onclick="openDocModal('${safeCardUrl}', 'Student ID Card - ${safeName}')">
-                                <span class="doc-label">📄 Student Card</span>
-                                <button type="button" class="btn-view-doc" onclick="openDocModal('${safeCardUrl}', 'Student ID Card - ${safeName}')">🔍 Inspect Card</button>
-                            </div>
-                            ` : ''}
-                            ${v.cnic_card_url ? `
-                            <div class="doc-thumb-card">
-                                <img src="${v.cnic_card_url}" class="doc-thumb-img" alt="CNIC Card" onerror="this.onerror=null; this.src='../Icons/App Icon.png';" onclick="openDocModal('${safeCnicUrl}', 'CNIC Front - ${safeName}')">
-                                <span class="doc-label">🪪 CNIC Front</span>
-                                <button type="button" class="btn-view-doc" onclick="openDocModal('${safeCnicUrl}', 'CNIC Front - ${safeName}')">🔍 Inspect CNIC</button>
-                            </div>
-                            ` : ''}
+                    <div class="docs-grid">
+                        ${v.student_card_url ? `
+                        <div class="doc-thumb-card">
+                            <img src="${v.student_card_url}" class="doc-thumb-img" alt="Student Card" onerror="this.onerror=null; this.src='../Icons/App Icon.png';" onclick="openDocModal('${safeCardUrl}', 'Student ID Card - ${safeName}')">
+                            <span class="doc-label">📄 Student Card</span>
+                            <button type="button" class="btn-view-doc" onclick="openDocModal('${safeCardUrl}', 'Student ID Card - ${safeName}')">🔍 Inspect Card</button>
                         </div>
+                        ` : ''}
+                        ${v.cnic_card_url ? `
+                        <div class="doc-thumb-card">
+                            <img src="${v.cnic_card_url}" class="doc-thumb-img" alt="CNIC Card" onerror="this.onerror=null; this.src='../Icons/App Icon.png';" onclick="openDocModal('${safeCnicUrl}', 'CNIC Front - ${safeName}')">
+                            <span class="doc-label">🪪 CNIC Front</span>
+                            <button type="button" class="btn-view-doc" onclick="openDocModal('${safeCnicUrl}', 'CNIC Front - ${safeName}')">🔍 Inspect CNIC</button>
+                        </div>
+                        ` : ''}
                     </div>
                     ` : `
                     <div class="no-docs-badge">
-                        ⚠️ No documents uploaded
+                        ⚠️ No verification documents uploaded yet by student
                     </div>
                     `}
                 </div>
@@ -356,15 +351,6 @@ function openDocModal(imgUrl, title) {
 function closeDocModal() {
     const docModal = document.getElementById('docModal');
     if (docModal) docModal.classList.remove('active');
-}
-
-function toggleDocsSection(btn) {
-    const container = btn.nextElementSibling;
-    if (!container) return;
-    const isExpanded = container.style.display === 'block';
-    container.style.display = isExpanded ? 'none' : 'block';
-    const chevron = btn.querySelector('.chevron');
-    if (chevron) chevron.textContent = isExpanded ? '▼' : '▲';
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
