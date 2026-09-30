@@ -114,59 +114,170 @@ async function handleSignInSubmit(e) {
         }
 
         if (data && data.user) {
-            let { data: uData } = await window.sbClient
-                .from('users_t')
-                .select('*')
-                .eq('user_id', data.user.id)
-                .maybeSingle();
+            const userMeta = data.user.user_metadata || {};
+            const appMeta = data.user.app_metadata || {};
 
-            let { data: vuData } = await window.sbClient
-                .from('vendor_users_t')
-                .select('*, vendors_t(name, logo_file_id, logo_file:uploaded_files_t!logo_file_id(file_path)), branches_t(branch_name)')
-                .eq('user_id', data.user.id)
-                .maybeSingle();
+            let uData = null;
+            let vuData = null;
+
+            try {
+                const { data: userData } = await window.sbClient
+                    .from('users_t')
+                    .select('*')
+                    .eq('user_id', data.user.id)
+                    .maybeSingle();
+                uData = userData;
+            } catch (err) {
+                console.warn('users_t query warning:', err);
+            }
+
+            try {
+                const { data: vendorUserData } = await window.sbClient
+                    .from('vendor_users_t')
+                    .select('*, vendors_t(name, logo_file_id, logo_file:uploaded_files_t!logo_file_id(file_path)), branches_t(branch_name)')
+                    .eq('user_id', data.user.id)
+                    .maybeSingle();
+                vuData = vendorUserData;
+            } catch (err) {
+                console.warn('vendor_users_t query warning:', err);
+            }
 
             let roleCode = null;
             let roleName = null;
+            let roleId = null;
 
+            // 1. Resolve from vendor_users_t (if mapped as vendor/branch cashier/admin)
+            if (vuData) {
+                roleCode = vuData.branch_id ? 'BV' : 'V';
+                roleName = vuData.branch_id ? 'Branch Vendor' : 'Main Vendor';
+                roleId = vuData.branch_id ? 4 : 2;
+            }
+
+            // 2. Resolve from users_t and roles_t
             if (uData) {
                 if (uData.role_id) {
-                    const { data: rData } = await window.sbClient
-                        .from('roles_t')
-                        .select('role_code, role_name')
-                        .eq('role_id', uData.role_id)
-                        .maybeSingle();
-                    if (rData) {
-                        roleCode = rData.role_code;
-                        roleName = rData.role_name;
+                    roleId = uData.role_id;
+                    try {
+                        const { data: rData } = await window.sbClient
+                            .from('roles_t')
+                            .select('role_code, role_name')
+                            .eq('role_id', uData.role_id)
+                            .maybeSingle();
+                        if (rData) {
+                            roleCode = rData.role_code;
+                            roleName = rData.role_name;
+                        }
+                    } catch (e) {
+                        console.warn('roles_t query warning:', e);
+                    }
+
+                    if (!roleCode) {
+                        if (uData.role_id == 1 || uData.role_id === '1') {
+                            roleCode = 'A';
+                            roleName = 'System Admin';
+                        } else if (uData.role_id == 2 || uData.role_id === '2') {
+                            roleCode = 'V';
+                            roleName = 'Main Vendor';
+                        } else if (uData.role_id == 4 || uData.role_id === '4') {
+                            roleCode = 'BV';
+                            roleName = 'Branch Vendor';
+                        } else if (uData.role_id == 3 || uData.role_id === '3') {
+                            roleCode = 'S';
+                            roleName = 'Student';
+                        }
                     }
                 }
-                if (!roleCode && uData.role_code) roleCode = uData.role_code;
-                if (!roleCode && (uData.role_id === 1 || uData.role_id === '1')) roleCode = 'A';
+                if (!roleCode && uData.role_code) roleCode = uData.role_code.toUpperCase();
             }
 
-            if (vuData) {
-                if (!roleCode || roleCode === 'V') {
-                    roleCode = vuData.branch_id ? 'BV' : 'V';
-                    roleName = vuData.branch_id ? 'Branch Vendor' : 'Main Vendor';
+            // 3. Fallback to Supabase Auth user_metadata and app_metadata
+            const metaRoleCode = (
+                userMeta.role_code ||
+                userMeta.role ||
+                appMeta.role_code ||
+                appMeta.role ||
+                ''
+            ).toString().trim().toUpperCase();
+
+            const metaRoleId = userMeta.role_id || appMeta.role_id;
+
+            if (!roleCode) {
+                if (metaRoleCode === 'A' || metaRoleCode === 'ADMIN' || metaRoleId == 1 || metaRoleId === '1') {
+                    roleCode = 'A';
+                    roleName = 'System Admin';
+                    roleId = 1;
+                } else if (
+                    metaRoleCode === 'V' ||
+                    metaRoleCode === 'VM' ||
+                    metaRoleCode === 'VENDOR' ||
+                    metaRoleCode === 'MAIN VENDOR' ||
+                    metaRoleId == 2 ||
+                    metaRoleId === '2'
+                ) {
+                    roleCode = 'V';
+                    roleName = 'Main Vendor';
+                    roleId = 2;
+                } else if (
+                    metaRoleCode === 'BV' ||
+                    metaRoleCode === 'BRANCH VENDOR' ||
+                    metaRoleId == 4 ||
+                    metaRoleId === '4'
+                ) {
+                    roleCode = 'BV';
+                    roleName = 'Branch Vendor';
+                    roleId = 4;
+                } else if (
+                    metaRoleCode === 'S' ||
+                    metaRoleCode === 'STUDENT' ||
+                    metaRoleId == 3 ||
+                    metaRoleId === '3'
+                ) {
+                    roleCode = 'S';
+                    roleName = 'Student';
+                    roleId = 3;
+                } else if (metaRoleCode) {
+                    roleCode = metaRoleCode;
+                    roleName = userMeta.role_name || metaRoleCode;
                 }
             }
 
-            const isAdmin = (
+            // Final fallback for roleName
+            if (!roleName) {
+                if (roleCode === 'A' || roleCode === 'ADMIN') roleName = 'System Admin';
+                else if (roleCode === 'V' || roleCode === 'VM' || roleCode === 'VENDOR') roleName = 'Main Vendor';
+                else if (roleCode === 'BV') roleName = 'Branch Vendor';
+                else if (roleCode === 'S' || roleCode === 'STUDENT') roleName = 'Student';
+                else roleName = 'User';
+            }
+
+            // Authorization checks
+            const isAdmin = Boolean(
                 roleCode === 'A' ||
                 roleCode === 'ADMIN' ||
-                (uData && (uData.role_id === 1 || uData.role_id === '1'))
+                (uData && (uData.role_id == 1 || uData.role_id === '1')) ||
+                (metaRoleId == 1 || metaRoleId === '1') ||
+                metaRoleCode === 'A' ||
+                metaRoleCode === 'ADMIN'
             );
 
-            const isMainVendor = (
-                (vuData && (vuData.branch_id === null || vuData.branch_id === undefined)) ||
-                roleCode === 'V' ||
-                roleCode === 'VM'
-            );
-
-            const isBranchVendor = (
+            const isBranchVendor = Boolean(
+                roleCode === 'BV' ||
+                metaRoleCode === 'BV' ||
+                metaRoleId == 4 ||
                 (vuData && vuData.branch_id !== null && vuData.branch_id !== undefined) ||
-                roleCode === 'BV'
+                (uData && (uData.role_id == 4 || uData.role_id === '4'))
+            );
+
+            const isMainVendor = !isBranchVendor && Boolean(
+                roleCode === 'V' ||
+                roleCode === 'VM' ||
+                roleCode === 'VENDOR' ||
+                metaRoleCode === 'V' ||
+                metaRoleCode === 'VM' ||
+                metaRoleCode === 'VENDOR' ||
+                metaRoleId == 2 ||
+                (vuData && (vuData.branch_id === null || vuData.branch_id === undefined)) ||
+                (uData && (uData.role_id == 2 || uData.role_id === '2'))
             );
 
             if (isBranchVendor) {
@@ -183,7 +294,19 @@ async function handleSignInSubmit(e) {
                 return;
             }
 
-            let userDisplayName = vuData?.full_name || uData?.full_name || data.user.user_metadata?.full_name || data.user.user_metadata?.name || '';
+            // Background upsert to users_t to ensure record continuity if table is writable
+            if (!uData && (isAdmin || isMainVendor)) {
+                try {
+                    await window.sbClient.from('users_t').upsert({
+                        user_id: data.user.id,
+                        email: data.user.email,
+                        role_id: isAdmin ? 1 : 2,
+                        is_active: true
+                    }, { onConflict: 'user_id' });
+                } catch (ignore) {}
+            }
+
+            let userDisplayName = vuData?.full_name || uData?.full_name || userMeta.full_name || userMeta.name || '';
             if (!userDisplayName || userDisplayName.includes('@')) {
                 const emailStr = data.user.email || '';
                 const prefix = emailStr.split('@')[0] || 'User';
@@ -199,14 +322,15 @@ async function handleSignInSubmit(e) {
                 user_id: data.user.id,
                 email: data.user.email,
                 full_name: userDisplayName,
+                role_id: uData?.role_id || roleId || (isAdmin ? 1 : 2),
                 role_code: isAdmin ? 'A' : (roleCode || 'V'),
-                role_name: isAdmin ? 'System Admin' : (roleName || 'Vendor User'),
-                vendor_id: vuData?.vendor_id || null,
-                vendor_name: vuData?.vendors_t?.name || null,
+                role_name: isAdmin ? 'System Admin' : (roleName || 'Main Vendor'),
+                vendor_id: vuData?.vendor_id || userMeta.vendor_id || null,
+                vendor_name: vuData?.vendors_t?.name || userMeta.vendor_name || null,
                 vendor_logo_url: vendorLogoUrl,
-                branch_id: vuData?.branch_id || null,
-                branch_name: vuData?.branches_t?.branch_name || null,
-                vendor_role: vuData?.vendor_role || null
+                branch_id: vuData?.branch_id || userMeta.branch_id || null,
+                branch_name: vuData?.branches_t?.branch_name || userMeta.branch_name || null,
+                vendor_role: vuData?.vendor_role || userMeta.vendor_role || null
             };
 
             localStorage.setItem('supabase_admin_user', JSON.stringify(sessionObj));
