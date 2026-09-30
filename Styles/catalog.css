@@ -23,12 +23,15 @@ body {
     font-size: 17px;
     font-weight: 800;
     color: #1e1b4b;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    line-height: 1.2;
 }
 
 .header-bar p {
-    font-size: 11.5px;
-    color: var(--text-muted, #64748b);
-    margin-top: 2px;
+    display: none !important;
 }
 
 .context-breadcrumb-bar {
