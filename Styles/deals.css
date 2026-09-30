@@ -1,16 +1,18 @@
 /* ── Deals Manager View Styles ── */
 body {
-    padding: 20px;
+    padding: 0;
+    margin: 0;
     min-height: 100vh;
 }
 
 .container {
     max-width: 100%;
-    margin: 0 auto;
+    margin: 0;
+    box-sizing: border-box;
     background: var(--card-bg, #ffffff);
-    padding: 24px 28px;
-    border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    padding: 12px 16px;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     border: 1px solid #e2e8f0;
 }
 
@@ -19,29 +21,29 @@ body {
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid #e2e8f0;
-    padding-bottom: 14px;
-    margin-bottom: 16px;
+    padding-bottom: 8px;
+    margin-bottom: 10px;
 }
 
 .header-title h2 {
-    font-size: 20px;
+    font-size: 17px;
     font-weight: 800;
     color: #1e1b4b;
 }
 
 .top-nav-tabs {
     display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
+    gap: 8px;
+    margin-bottom: 10px;
 }
 
 .nav-tab-btn {
-    padding: 10px 20px;
+    padding: 7px 14px;
     background: #f1f5f9;
     border: 1px solid var(--border-color, #cbd5e1);
-    border-radius: 10px;
+    border-radius: 8px;
     color: var(--text-muted, #64748b);
-    font-size: 13px;
+    font-size: 12.5px;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.2s;

@@ -17,27 +17,28 @@
 body {
     background-color: var(--bg-main);
     color: var(--text-main);
-    padding: 20px;
+    padding: 0;
+    margin: 0;
 }
 
 .header-container {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 10px;
 }
 
 .header-title h2 {
-    font-size: 22px;
+    font-size: 17px;
     font-weight: 800;
     color: #0f172a;
     letter-spacing: -0.5px;
 }
 
 .header-title p {
-    font-size: 13px;
+    font-size: 11.5px;
     color: var(--text-muted);
     margin-top: 2px;
 }
@@ -48,25 +49,25 @@ body {
     gap: 6px;
     background: #e0e7ff;
     color: #3730a3;
-    padding: 8px 14px;
-    border-radius: 12px;
-    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
     font-weight: 700;
     border: 1px solid #c7d2fe;
 }
 
 .kpi-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 16px;
-    margin-bottom: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+    margin-bottom: 10px;
 }
 
 .kpi-card {
     background: #ffffff;
     border: 1px solid var(--card-border);
-    border-radius: 14px;
-    padding: 16px;
+    border-radius: 10px;
+    padding: 12px 14px;
     box-shadow: var(--shadow-sm);
     display: flex;
     align-items: center;
