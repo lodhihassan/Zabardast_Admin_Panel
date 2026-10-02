@@ -138,7 +138,268 @@ window.addEventListener('DOMContentLoaded', async () => {
             }
         });
     }
+
+    // Default dates initialization
+    const today = new Date();
+    const nextYear = new Date(today);
+    nextYear.setFullYear(today.getFullYear() + 1);
+    const pad = (n) => String(n).padStart(2, '0');
+    const defaultFrom = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+    const defaultUntil = `${nextYear.getFullYear()}-${pad(nextYear.getMonth() + 1)}-${pad(nextYear.getDate())}`;
+
+    const validFromEl = document.getElementById('valid_from');
+    if (validFromEl && !validFromEl.value) validFromEl.value = defaultFrom;
+    const validUntilEl = document.getElementById('valid_until');
+    if (validUntilEl && !validUntilEl.value) validUntilEl.value = defaultUntil;
+
+    const dealForm = document.getElementById('dealForm');
+    if (dealForm) {
+        dealForm.addEventListener('submit', handleDealFormSubmit);
+    }
 });
+
+async function uploadDealBannerFile(file, vendorId, oldFileId = null) {
+    const bucket = STORAGE_BUCKET_NAME;
+    const lastDotIndex = file.name.lastIndexOf('.');
+    let nameWithoutExt = file.name;
+    let ext = '';
+    if (lastDotIndex > 0) {
+        nameWithoutExt = file.name.substring(0, lastDotIndex);
+        ext = file.name.substring(lastDotIndex);
+    }
+    const cleanName = nameWithoutExt.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const timestampedFileName = `${cleanName}_${Date.now()}${ext}`;
+    const storagePath = `vendor_${vendorId}/${timestampedFileName}`;
+    const fullPath = `${bucket}/${storagePath}`;
+
+    const { error: storageErr } = await window.sbClient.storage.from(bucket).upload(storagePath, file, { upsert: true });
+    if (storageErr) throw new Error(`Storage Upload Error (${bucket}/${storagePath}): ${storageErr.message}`);
+
+    const { data: fileRecord, error: fileErr } = await window.sbClient
+        .from('uploaded_files_t')
+        .insert({
+            file_name: timestampedFileName,
+            file_path: fullPath,
+            file_size_bytes: file.size,
+            mime_type: file.type
+        })
+        .select('file_id')
+        .single();
+
+    if (fileErr) {
+        await window.sbClient.storage.from(bucket).remove([storagePath]);
+        throw new Error(`Database File Record Error: ${fileErr.message}`);
+    }
+
+    if (oldFileId) {
+        try {
+            const { data: oldFile } = await window.sbClient
+                .from('uploaded_files_t')
+                .select('file_path')
+                .eq('file_id', oldFileId)
+                .single();
+
+            if (oldFile && oldFile.file_path) {
+                const relativePath = oldFile.file_path.startsWith(`${bucket}/`)
+                    ? oldFile.file_path.replace(`${bucket}/`, '')
+                    : oldFile.file_path;
+
+                await window.sbClient.storage.from(bucket).remove([relativePath]);
+            }
+            await window.sbClient.from('uploaded_files_t').delete().eq('file_id', oldFileId);
+        } catch (cleanupErr) {
+            console.warn('Old file cleanup warning:', cleanupErr);
+        }
+    }
+
+    return fileRecord.file_id;
+}
+
+async function handleDealFormSubmit(e) {
+    e.preventDefault();
+
+    const submitBtn = document.getElementById('btnDealFormSubmit');
+    const msgDiv = document.getElementById('formMessage');
+
+    if (submitBtn) submitBtn.disabled = true;
+    if (msgDiv) {
+        msgDiv.style.display = 'block';
+        msgDiv.className = 'message info';
+        msgDiv.textContent = editingDealId ? 'Updating deal...' : 'Creating deal...';
+    }
+
+    try {
+        const catSelect = document.getElementById('category_id');
+        const venSelect = document.getElementById('vendor_id');
+        const category_id = catSelect ? parseInt(catSelect.value) : null;
+        const vendor_id = venSelect ? parseInt(venSelect.value) : null;
+        const title = (document.getElementById('title')?.value || '').trim();
+        const description = (document.getElementById('description')?.value || '').trim();
+
+        const discount_type = document.getElementById('discount_type')?.value || 'P';
+        const discount_prefix = document.getElementById('discount_prefix')?.value || null;
+        const discount_val_str = document.getElementById('discount_value')?.value;
+        const discount_value = discount_val_str ? parseFloat(discount_val_str) : 0;
+        const deal_tag = document.getElementById('deal_tag')?.value || null;
+        const home_section = document.getElementById('home_section')?.value || null;
+        const redeem_limit_per_day = document.getElementById('redeem_limit_per_day')?.value ? parseInt(document.getElementById('redeem_limit_per_day').value) : 1;
+
+        const today = new Date();
+        const nextYear = new Date(today);
+        nextYear.setFullYear(today.getFullYear() + 1);
+        const pad = (n) => String(n).padStart(2, '0');
+        const defaultFrom = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+        const defaultUntil = `${nextYear.getFullYear()}-${pad(nextYear.getMonth() + 1)}-${pad(nextYear.getDate())}`;
+
+        const valid_from = document.getElementById('valid_from')?.value || defaultFrom;
+        const valid_until = document.getElementById('valid_until')?.value || defaultUntil;
+        const valid_day_from = document.getElementById('valid_day_from')?.value || '1';
+        const valid_day_to = document.getElementById('valid_day_to')?.value || '7';
+
+        const startTimeVal = document.getElementById('start_time')?.value || '00:00';
+        const endTimeVal = document.getElementById('end_time')?.value || '23:59';
+        const start_time = startTimeVal.length === 5 ? `${startTimeVal}:00` : startTimeVal;
+        const end_time = endTimeVal.length === 5 ? `${endTimeVal}:00` : endTimeVal;
+
+        const min_purchase_amount = document.getElementById('min_purchase_amount')?.value ? parseFloat(document.getElementById('min_purchase_amount').value) : 0;
+        const maxDiscVal = document.getElementById('max_discount_amount')?.value;
+        const max_discount_amount = (maxDiscVal !== '' && maxDiscVal !== null && maxDiscVal !== undefined) ? parseFloat(maxDiscVal) : null;
+
+        if (!category_id || !vendor_id || !title || !description) {
+            throw new Error('Please fill in all required fields (Category, Vendor, Title, Description).');
+        }
+
+        let banner_image_id = editingDealBannerImageId || null;
+        const bannerFileInput = document.getElementById('banner_image');
+        if (bannerFileInput && bannerFileInput.files && bannerFileInput.files.length > 0) {
+            const file = bannerFileInput.files[0];
+            banner_image_id = await uploadDealBannerFile(file, vendor_id, banner_image_id);
+        }
+
+        const cleanUser = getCleanAdminUser();
+
+        const dealPayload = {
+            category_id,
+            vendor_id,
+            title,
+            description,
+            discount_type,
+            discount_prefix,
+            discount_value,
+            deal_tag,
+            home_section,
+            redeem_limit_per_day,
+            valid_from,
+            valid_until,
+            valid_day_from,
+            valid_day_to,
+            start_time,
+            end_time,
+            min_purchase_amount,
+            max_discount_amount,
+            banner_image_id,
+            is_active: true,
+            updated_by: cleanUser,
+            updated_date: getPKTISOString()
+        };
+
+        let dealId = editingDealId;
+
+        if (editingDealId) {
+            const { error: updateErr } = await window.sbClient
+                .from('deals_t')
+                .update(dealPayload)
+                .eq('deal_id', editingDealId);
+
+            if (updateErr) throw updateErr;
+        } else {
+            dealPayload.created_by = cleanUser;
+            dealPayload.created_date = getPKTISOString();
+
+            const { data: newDeal, error: insertErr } = await window.sbClient
+                .from('deals_t')
+                .insert(dealPayload)
+                .select('deal_id')
+                .single();
+
+            if (insertErr) throw insertErr;
+            dealId = newDeal.deal_id;
+        }
+
+        // Scope insertion
+        await window.sbClient.from('deal_scope_t').delete().eq('deal_id', dealId);
+
+        const scopeRows = [];
+        const checkedInsts = Array.from(document.querySelectorAll('.institute-checkbox:checked')).map(cb => parseInt(cb.value));
+        checkedInsts.forEach(instId => {
+            scopeRows.push({ deal_id: dealId, category_id, vendor_id, institute_id: instId, scope_type: 'BUY', created_by: cleanUser });
+        });
+
+        const checkedBranches = Array.from(document.querySelectorAll('.branch-checkbox:checked')).map(cb => parseInt(cb.value));
+        checkedBranches.forEach(bId => {
+            scopeRows.push({ deal_id: dealId, category_id, vendor_id, branch_id: bId, scope_type: 'BUY', created_by: cleanUser });
+        });
+
+        const checkedProds = Array.from(document.querySelectorAll('.product-checkbox:checked')).map(cb => parseInt(cb.value));
+        checkedProds.forEach(pId => {
+            scopeRows.push({ deal_id: dealId, category_id, vendor_id, product_id: pId, scope_type: 'BUY', created_by: cleanUser });
+        });
+
+        const checkedSubProds = Array.from(document.querySelectorAll('.sub-product-checkbox:checked')).map(cb => parseInt(cb.value));
+        checkedSubProds.forEach(spId => {
+            scopeRows.push({ deal_id: dealId, category_id, vendor_id, sub_product_id: spId, scope_type: 'BUY', created_by: cleanUser });
+        });
+
+        const checkedRewardProds = Array.from(document.querySelectorAll('.reward-product-checkbox:checked')).map(cb => parseInt(cb.value));
+        checkedRewardProds.forEach(pId => {
+            scopeRows.push({ deal_id: dealId, category_id, vendor_id, product_id: pId, scope_type: 'GET', created_by: cleanUser });
+        });
+
+        const checkedRewardSubProds = Array.from(document.querySelectorAll('.reward-sub-product-checkbox:checked')).map(cb => parseInt(cb.value));
+        checkedRewardSubProds.forEach(spId => {
+            scopeRows.push({ deal_id: dealId, category_id, vendor_id, sub_product_id: spId, scope_type: 'GET', created_by: cleanUser });
+        });
+
+        if (scopeRows.length > 0) {
+            const { error: scopeErr } = await window.sbClient.from('deal_scope_t').insert(scopeRows);
+            if (scopeErr) console.warn('Error inserting deal scopes:', scopeErr);
+        }
+
+        // Fine print insertion (column is instruction)
+        await window.sbClient.from('deal_fine_print_t').delete().eq('deal_id', dealId);
+
+        if (finePrintList && finePrintList.length > 0) {
+            const finePrintRows = finePrintList.map((instruction, idx) => ({
+                deal_id: dealId,
+                instruction,
+                order_by: idx + 1,
+                created_by: cleanUser
+            }));
+            const { error: fpErr } = await window.sbClient.from('deal_fine_print_t').insert(finePrintRows);
+            if (fpErr) console.warn('Error inserting fine prints:', fpErr);
+        }
+
+        showToast(editingDealId ? `Deal #${dealId} updated successfully!` : `Deal #${dealId} created successfully!`, 'success');
+
+        if (msgDiv) {
+            msgDiv.className = 'message success';
+            msgDiv.textContent = editingDealId ? `Deal #${dealId} updated successfully!` : `Deal #${dealId} created successfully!`;
+        }
+
+        resetDealFormToCreate(true);
+        switchDealsView('view', false);
+
+    } catch (err) {
+        console.error('Error saving deal:', err);
+        showToast('Failed to save deal: ' + err.message, 'error', 10000);
+        if (msgDiv) {
+            msgDiv.className = 'message danger';
+            msgDiv.textContent = 'Error: ' + err.message;
+        }
+    } finally {
+        if (submitBtn) submitBtn.disabled = false;
+    }
+}
 
 function switchDealsView(view, fromTabClick = true) {
     const tabCreate = document.getElementById('tabBtnCreate');
@@ -579,6 +840,9 @@ async function fetchDealsList() {
                 deal_tag_name: tagMap[d.deal_tag] || d.deal_tag,
                 home_section: d.home_section,
                 home_section_name: sectionMap[d.home_section] || d.home_section,
+                min_purchase_amount: d.min_purchase_amount,
+                max_discount_amount: d.max_discount_amount,
+                redeem_limit_per_day: d.redeem_limit_per_day,
                 valid_from: d.valid_from,
                 valid_until: d.valid_until,
                 valid_day_from: d.valid_day_from,
@@ -736,7 +1000,9 @@ function renderDealsGrid(deals) {
 
                 <div class="deal-card-actions">
                     <button type="button" class="btn-card-edit" onclick="editDealFromCard(${deal.deal_id})">✏️ Edit Deal</button>
-                    ${deal.is_active ? `<button type="button" class="btn-card-deactivate" onclick="softDeleteDeal(${deal.deal_id})">Delete</button>` : `<span style="font-size: 11px; color: var(--danger-text); font-weight:700; align-self:center; margin-left: auto;">Deactivated</span>`}
+                    ${deal.is_active 
+                        ? `<button type="button" class="btn-card-deactivate" onclick="softDeleteDeal(${deal.deal_id})">Delete</button>` 
+                        : `<button type="button" class="btn-card-activate" style="background:#10b981; color:white; border:none; padding:7px 14px; border-radius:8px; font-weight:700; font-size:12px; cursor:pointer;" onclick="toggleDealActiveStatus(${deal.deal_id}, true)">🟢 Activate</button>`}
                 </div>
             </div>
         `;
@@ -765,7 +1031,7 @@ async function softDeleteDeal(dealId) {
     try {
         const { error } = await window.sbClient
             .from('deals_t')
-            .update({ is_active: false, updated_by: getLoggedInUserName(), updated_date: getPKTISOString() })
+            .update({ is_active: false, updated_by: getCleanAdminUser(), updated_date: getPKTISOString() })
             .eq('deal_id', dealId);
 
         if (error) throw error;
@@ -773,6 +1039,21 @@ async function softDeleteDeal(dealId) {
         await fetchDealsList();
     } catch (err) {
         showToast('Failed to delete deal: ' + err.message, 'error', 10000);
+    }
+}
+
+async function toggleDealActiveStatus(dealId, newStatus) {
+    try {
+        const { error } = await window.sbClient
+            .from('deals_t')
+            .update({ is_active: newStatus, updated_by: getCleanAdminUser(), updated_date: getPKTISOString() })
+            .eq('deal_id', dealId);
+
+        if (error) throw error;
+        showToast(newStatus ? `Deal #${dealId} activated!` : `Deal #${dealId} deactivated!`, 'success');
+        await fetchDealsList();
+    } catch (err) {
+        showToast('Failed to update deal status: ' + err.message, 'error', 10000);
     }
 }
 
@@ -804,6 +1085,13 @@ async function editDealFromCard(dealId) {
     document.getElementById('valid_day_to').value = deal.valid_day_to || '7';
     document.getElementById('start_time').value = deal.start_time ? deal.start_time.substring(0, 5) : '00:00';
     document.getElementById('end_time').value = deal.end_time ? deal.end_time.substring(0, 5) : '23:59';
+
+    const rLimitEl = document.getElementById('redeem_limit_per_day');
+    if (rLimitEl) rLimitEl.value = deal.redeem_limit_per_day ?? 1;
+    const minPurEl = document.getElementById('min_purchase_amount');
+    if (minPurEl) minPurEl.value = deal.min_purchase_amount ?? 0;
+    const maxDiscEl = document.getElementById('max_discount_amount');
+    if (maxDiscEl) maxDiscEl.value = deal.max_discount_amount ?? '';
 
     if (deal.banner_image) {
         const imgPreviewContainer = document.getElementById('deal_image_preview_container');
@@ -858,6 +1146,30 @@ function resetDealFormToCreate(keepSuccessBanner = false) {
 
     const form = document.getElementById('dealForm');
     if (form) form.reset();
+
+    // Default dates
+    const today = new Date();
+    const nextYear = new Date(today);
+    nextYear.setFullYear(today.getFullYear() + 1);
+    const pad = (n) => String(n).padStart(2, '0');
+    const defaultFrom = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+    const defaultUntil = `${nextYear.getFullYear()}-${pad(nextYear.getMonth() + 1)}-${pad(nextYear.getDate())}`;
+
+    const validFromEl = document.getElementById('valid_from');
+    if (validFromEl) validFromEl.value = defaultFrom;
+    const validUntilEl = document.getElementById('valid_until');
+    if (validUntilEl) validUntilEl.value = defaultUntil;
+
+    // Reset all scope checkboxes
+    document.querySelectorAll('.branch-checkbox, .institute-checkbox, .product-checkbox, .sub-product-checkbox, .reward-product-checkbox, .reward-sub-product-checkbox').forEach(cb => { cb.checked = false; });
+
+    finePrintList = [
+        "Valid student ID required at payment.",
+        "One redemption per member, per day.",
+        "Not valid with other drops or promotions.",
+        "Dine-in and takeaway only."
+    ];
+    renderFinePrintUI();
 
     const titleEl = document.getElementById('title');
     if (titleEl) delete titleEl.dataset.userEdited;
