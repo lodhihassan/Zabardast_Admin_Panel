@@ -49,6 +49,22 @@ async function applyVendorLockContext() {
     }
 }
 
+function getLastDayOfMonth(dateStrOrObj) {
+    let year, month;
+    if (typeof dateStrOrObj === 'string' && dateStrOrObj.includes('-')) {
+        const parts = dateStrOrObj.split('-');
+        year = parseInt(parts[0], 10);
+        month = parseInt(parts[1], 10);
+    } else {
+        const d = dateStrOrObj instanceof Date ? dateStrOrObj : new Date();
+        year = d.getFullYear();
+        month = d.getMonth() + 1;
+    }
+    const lastDayDate = new Date(year, month, 0);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${year}-${pad(month)}-${pad(lastDayDate.getDate())}`;
+}
+
 window.addEventListener('DOMContentLoaded', async () => {
     const isAuthorized = await checkAuthAndSession({ allowDirect: false });
     if (!isAuthorized) return;
@@ -139,18 +155,28 @@ window.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // Default dates initialization
+
+
+    // Default dates initialization (valid_until = last day of the same month)
     const today = new Date();
-    const nextYear = new Date(today);
-    nextYear.setFullYear(today.getFullYear() + 1);
     const pad = (n) => String(n).padStart(2, '0');
     const defaultFrom = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
-    const defaultUntil = `${nextYear.getFullYear()}-${pad(nextYear.getMonth() + 1)}-${pad(nextYear.getDate())}`;
+    const defaultUntil = getLastDayOfMonth(defaultFrom);
 
     const validFromEl = document.getElementById('valid_from');
     if (validFromEl && !validFromEl.value) validFromEl.value = defaultFrom;
     const validUntilEl = document.getElementById('valid_until');
     if (validUntilEl && !validUntilEl.value) validUntilEl.value = defaultUntil;
+
+    if (validFromEl) {
+        validFromEl.addEventListener('change', (e) => {
+            if (e.target.value) {
+                const targetUntil = getLastDayOfMonth(e.target.value);
+                const untilEl = document.getElementById('valid_until');
+                if (untilEl) untilEl.value = targetUntil;
+            }
+        });
+    }
 
     const dealForm = document.getElementById('dealForm');
     if (dealForm) {
@@ -245,13 +271,10 @@ async function handleDealFormSubmit(e) {
         const redeem_limit_per_day = document.getElementById('redeem_limit_per_day')?.value ? parseInt(document.getElementById('redeem_limit_per_day').value) : 1;
 
         const today = new Date();
-        const nextYear = new Date(today);
-        nextYear.setFullYear(today.getFullYear() + 1);
         const pad = (n) => String(n).padStart(2, '0');
         const defaultFrom = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
-        const defaultUntil = `${nextYear.getFullYear()}-${pad(nextYear.getMonth() + 1)}-${pad(nextYear.getDate())}`;
-
         const valid_from = document.getElementById('valid_from')?.value || defaultFrom;
+        const defaultUntil = getLastDayOfMonth(valid_from);
         const valid_until = document.getElementById('valid_until')?.value || defaultUntil;
         const valid_day_from = document.getElementById('valid_day_from')?.value || '1';
         const valid_day_to = document.getElementById('valid_day_to')?.value || '7';
@@ -1170,13 +1193,11 @@ function resetDealFormToCreate(keepSuccessBanner = false) {
     const form = document.getElementById('dealForm');
     if (form) form.reset();
 
-    // Default dates
+    // Default dates (valid_until is last day of the same month)
     const today = new Date();
-    const nextYear = new Date(today);
-    nextYear.setFullYear(today.getFullYear() + 1);
     const pad = (n) => String(n).padStart(2, '0');
     const defaultFrom = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
-    const defaultUntil = `${nextYear.getFullYear()}-${pad(nextYear.getMonth() + 1)}-${pad(nextYear.getDate())}`;
+    const defaultUntil = getLastDayOfMonth(defaultFrom);
 
     const validFromEl = document.getElementById('valid_from');
     if (validFromEl) validFromEl.value = defaultFrom;
