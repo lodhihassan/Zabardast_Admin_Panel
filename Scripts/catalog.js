@@ -439,7 +439,9 @@ function renderRecordsList(records) {
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">
             <span class="status-badge ${isActive ? 'status-active' : 'status-inactive'}">${isActive ? 'Active' : 'Inactive'}</span>
-            <button class="btn-sm btn-delete" onclick="event.stopPropagation(); softDeleteById(${id})">Delete</button>
+            ${isActive 
+                ? `<button class="btn-sm btn-delete" onclick="event.stopPropagation(); softDeleteById(${id})">Delete</button>` 
+                : `<button class="btn-sm btn-activate" style="background:#10b981; color:white; border:none; padding:4px 10px; border-radius:6px; font-weight:700; font-size:11px; cursor:pointer;" onclick="event.stopPropagation(); activateRecordById(${id})">🟢 Activate</button>`}
         </div>
     `;
         container.appendChild(div);
@@ -481,7 +483,15 @@ async function selectRecordForEdit(record) {
     document.getElementById('modeBadge').textContent = 'Mode: Update';
     document.getElementById('modeBadge').style.background = '#3b82f6';
     document.getElementById('btnSubmitForm').textContent = `Update ${config.title}`;
-    document.getElementById('deleteBtnContainer').style.display = 'block';
+
+    const isRecordActive = record.is_active !== false;
+    const delContainer = document.getElementById('deleteBtnContainer');
+    if (delContainer) {
+        delContainer.style.display = 'block';
+        delContainer.innerHTML = isRecordActive
+            ? `<button type="button" class="btn-danger-full" style="width: 100%;" onclick="softDeleteCurrentRecord()">Delete</button>`
+            : `<button type="button" class="btn-success-full" style="width: 100%; background: #10b981; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 700; cursor: pointer;" onclick="activateCurrentRecord()">🟢 Activate</button>`;
+    }
 
     if (currentTab === 'vendor' || currentTab === 'branch') {
         await fetchBranchVendorUsers();
@@ -710,7 +720,9 @@ function renderFormFields() {
 
         ${currentVendorId ? `
         <div style="margin-bottom: 16px;">
-            <button type="button" class="btn-danger-full" style="width: 100%;" onclick="softDeleteCurrentRecord()">Delete</button>
+            ${(selectedRecord && selectedRecord.is_active === false)
+                ? `<button type="button" class="btn-success-full" style="width: 100%; background: #10b981; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 700; cursor: pointer;" onclick="activateCurrentRecord()">🟢 Activate</button>`
+                : `<button type="button" class="btn-danger-full" style="width: 100%;" onclick="softDeleteCurrentRecord()">Delete</button>`}
         </div>` : ''}
 
         ${!currentVendorId ? `
@@ -869,7 +881,9 @@ function renderFormFields() {
 
         ${currentBranchId ? `
         <div style="margin-bottom: 16px;">
-            <button type="button" class="btn-danger-full" style="width: 100%;" onclick="softDeleteCurrentRecord()">Delete</button>
+            ${(selectedRecord && selectedRecord.is_active === false)
+                ? `<button type="button" class="btn-success-full" style="width: 100%; background: #10b981; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 700; cursor: pointer;" onclick="activateCurrentRecord()">🟢 Activate</button>`
+                : `<button type="button" class="btn-danger-full" style="width: 100%;" onclick="softDeleteCurrentRecord()">Delete</button>`}
         </div>` : ''}
 
         ${!currentBranchId ? `
@@ -1184,7 +1198,7 @@ async function softDeleteById(id) {
             .eq(config.pk, id);
 
         if (error) throw error;
-        showAlert(`⚠️ Record #${id} deactivated (is_active = false)`);
+        showAlert(`⚠️ Record #${id} deactivated successfully`);
         if (selectedRecord && selectedRecord[config.pk] === id) resetFormToCreate();
         await fetchRecordsList();
     } catch (err) {
@@ -1192,9 +1206,35 @@ async function softDeleteById(id) {
     }
 }
 
+// Activation Handler (Sets is_active = true)
+async function activateRecordById(id) {
+    const config = tabConfigs[currentTab];
+    try {
+        const { error } = await window.sbClient
+            .from(config.table)
+            .update({ is_active: true, updated_by: getCleanAdminUser() })
+            .eq(config.pk, id);
+
+        if (error) throw error;
+        showAlert(`🟢 Record #${id} activated successfully!`);
+        if (selectedRecord && selectedRecord[config.pk] === id) {
+            selectedRecord.is_active = true;
+            await selectRecordForEdit(selectedRecord);
+        }
+        await fetchRecordsList();
+    } catch (err) {
+        showAlert(`❌ Failed to activate: ${err.message}`, 'error');
+    }
+}
+
 async function softDeleteCurrentRecord() {
     const id = document.getElementById('editingRecordId').value;
     if (id) await softDeleteById(id);
+}
+
+async function activateCurrentRecord() {
+    const id = document.getElementById('editingRecordId').value;
+    if (id) await activateRecordById(id);
 }
 
 function updateHeaderBarVisibility() {

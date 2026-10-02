@@ -382,11 +382,11 @@ async function handleDealFormSubmit(e) {
         showToast(editingDealId ? `Deal #${dealId} updated successfully!` : `Deal #${dealId} created successfully!`, 'success');
 
         if (msgDiv) {
-            msgDiv.className = 'message success';
-            msgDiv.textContent = editingDealId ? `Deal #${dealId} updated successfully!` : `Deal #${dealId} created successfully!`;
+            msgDiv.style.display = 'none';
+            msgDiv.textContent = '';
         }
 
-        resetDealFormToCreate(true);
+        resetDealFormToCreate(false);
         switchDealsView('view', false);
 
     } catch (err) {
@@ -399,6 +399,22 @@ async function handleDealFormSubmit(e) {
     } finally {
         if (submitBtn) submitBtn.disabled = false;
     }
+}
+
+function resetDealFilters() {
+    const searchEl = document.getElementById('dealSearchInput');
+    if (searchEl) searchEl.value = '';
+
+    const catEl = document.getElementById('dealCategoryFilter');
+    if (catEl && (!activeVendorLock || !activeVendorLock.category_id)) {
+        catEl.value = '';
+    }
+
+    const branchEl = document.getElementById('dealBranchFilter');
+    if (branchEl) branchEl.value = '';
+
+    const statusEl = document.getElementById('dealStatusFilter');
+    if (statusEl) statusEl.value = 'all';
 }
 
 function switchDealsView(view, fromTabClick = true) {
@@ -414,11 +430,18 @@ function switchDealsView(view, fromTabClick = true) {
     const viewSec = document.getElementById('viewDealsSection');
     if (viewSec) viewSec.style.display = view === 'view' ? 'block' : 'none';
 
+    const msgDiv = document.getElementById('formMessage');
+    if (msgDiv) {
+        msgDiv.style.display = 'none';
+        msgDiv.textContent = '';
+    }
+
     if (view === 'create' && fromTabClick) {
         resetDealFormToCreate();
     }
 
     if (view === 'view') {
+        resetDealFilters();
         fetchDealsList();
     }
 }
@@ -1035,7 +1058,7 @@ async function softDeleteDeal(dealId) {
             .eq('deal_id', dealId);
 
         if (error) throw error;
-        showToast(`⚠️ Deal #${dealId} deactivated (is_active = false)`, 'success', 10000);
+        showToast(`⚠️ Deal #${dealId} deactivated successfully`, 'success', 10000);
         await fetchDealsList();
     } catch (err) {
         showToast('Failed to delete deal: ' + err.message, 'error', 10000);
