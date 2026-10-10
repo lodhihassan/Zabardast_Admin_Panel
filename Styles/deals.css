@@ -583,3 +583,129 @@ button[type="submit"]:hover { opacity: 0.95; }
     border: 1px solid #cbd5e1;
     position: relative;
 }
+
+/* ── Deal Code Pill Box & Copy Button ── */
+.deal-code-pill-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 10px;
+    border-radius: 8px;
+    margin: 6px 0 2px 0;
+    transition: all 0.2s ease;
+    gap: 8px;
+    box-sizing: border-box;
+}
+
+.deal-code-pill-box.code-active {
+    background: #f0fdf4;
+    border: 1.5px dashed #22c55e;
+    box-shadow: 0 1px 3px rgba(34, 197, 94, 0.08);
+}
+
+.deal-code-pill-box.code-inactive {
+    background: #f8fafc;
+    border: 1.5px dashed #94a3b8;
+}
+
+.deal-code-pill-box.code-none {
+    background: #f8fafc;
+    border: 1px dashed #e2e8f0;
+    padding: 5px 8px;
+}
+
+.deal-code-pill-left {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    flex-wrap: wrap;
+}
+
+.deal-code-badge-tag {
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+.deal-code-pill-box.code-active .deal-code-badge-tag {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.deal-code-pill-box.code-inactive .deal-code-badge-tag {
+    background: #e2e8f0;
+    color: #475569;
+}
+
+.deal-code-value {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+    font-size: 12.5px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    background: #ffffff;
+    padding: 2px 8px;
+    border-radius: 5px;
+    border: 1px solid #cbd5e1;
+    user-select: all;
+    display: inline-block;
+}
+
+.deal-code-pill-box.code-active .deal-code-value {
+    color: #166534;
+    border-color: #86efac;
+    background: #ffffff;
+}
+
+.deal-code-pill-right {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+}
+
+.deal-code-source-badge {
+    font-size: 9.5px;
+    font-weight: 700;
+    color: #64748b;
+    background: #e2e8f0;
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.deal-code-pill-box.code-active .deal-code-source-badge {
+    background: #bbf7d0;
+    color: #166534;
+}
+
+.btn-copy-code {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    cursor: pointer;
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #334155;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+}
+
+.btn-copy-code:hover {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+    color: #0f172a;
+    transform: translateY(-1px);
+}
+
+.btn-copy-code:active {
+    transform: translateY(0);
+}
+

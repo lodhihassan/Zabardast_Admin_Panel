@@ -128,6 +128,27 @@ BEGIN
       AND expires_at > NOW();
 
     IF FOUND THEN
+        -- Check if vendor has an active Shopify voucher for this deal that should sync with manual_code
+        BEGIN
+            SELECT code INTO v_manual_code
+            FROM public.shopify_vouchers_t
+            WHERE deal_id = p_deal_id
+              AND status = 'issued'
+              AND (expires_at IS NULL OR expires_at > NOW())
+            ORDER BY issued_at DESC
+            LIMIT 1;
+        EXCEPTION WHEN OTHERS THEN
+            v_manual_code := NULL;
+        END;
+
+        IF v_manual_code IS NOT NULL AND (v_existing_redemption.manual_code IS NULL OR v_existing_redemption.manual_code != v_manual_code) THEN
+            UPDATE public.deal_redemptions_t
+            SET manual_code = v_manual_code
+            WHERE redemption_id = v_existing_redemption.redemption_id;
+            
+            v_existing_redemption.manual_code := v_manual_code;
+        END IF;
+
         RETURN JSON_BUILD_OBJECT(
             'success', TRUE,
             'message', 'Active QR code already exists.',
@@ -139,15 +160,32 @@ BEGIN
         );
     END IF;
 
-    -- 7. Generate New Unique QR Token (ZBD-prefix) & Manual Code (ZB + 4 Digits)
+    -- 7. Generate New Unique QR Token (ZBD-prefix) & Pick Vendor Code or Fallback (ZB + 4 Digits)
     v_qr_token := 'ZBD-' || gen_random_uuid()::text;
-    LOOP
-        v_manual_code := 'ZB' || LPAD(FLOOR(RANDOM() * 10000)::text, 4, '0');
-        EXIT WHEN NOT EXISTS (
-            SELECT 1 FROM public.deal_redemptions_t 
-            WHERE manual_code = v_manual_code AND status = 'P' AND expires_at > NOW()
-        );
-    END LOOP;
+
+    -- Check if Vendor has generated an active code in Shopify for this deal
+    BEGIN
+        SELECT code INTO v_manual_code
+        FROM public.shopify_vouchers_t
+        WHERE deal_id = p_deal_id
+          AND status = 'issued'
+          AND (expires_at IS NULL OR expires_at > NOW())
+        ORDER BY issued_at DESC
+        LIMIT 1;
+    EXCEPTION WHEN OTHERS THEN
+        v_manual_code := NULL;
+    END;
+
+    -- If no vendor code found in Shopify, fallback to ZB + 4 random digits
+    IF v_manual_code IS NULL THEN
+        LOOP
+            v_manual_code := 'ZB' || LPAD(FLOOR(RANDOM() * 10000)::text, 4, '0');
+            EXIT WHEN NOT EXISTS (
+                SELECT 1 FROM public.deal_redemptions_t 
+                WHERE manual_code = v_manual_code AND status = 'P' AND expires_at > NOW()
+            );
+        END LOOP;
+    END IF;
 
     -- 8. Insert New Entry with Pending Status ('P')
     INSERT INTO public.deal_redemptions_t (

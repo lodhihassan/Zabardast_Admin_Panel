@@ -402,6 +402,20 @@ async function handleDealFormSubmit(e) {
             if (fpErr) console.warn('Error inserting fine prints:', fpErr);
         }
 
+        // Online redemption setting (Shopify)
+        const isOnlineChecked = document.getElementById('deal_online_enabled')?.checked || false;
+        try {
+            await window.sbClient
+                .from('shopify_deal_settings_t')
+                .upsert({
+                    deal_id: dealId,
+                    online_enabled: isOnlineChecked,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'deal_id' });
+        } catch (onlineErr) {
+            console.warn('Could not update shopify_deal_settings_t:', onlineErr);
+        }
+
         showToast(editingDealId ? `Deal #${dealId} updated successfully!` : `Deal #${dealId} created successfully!`, 'success');
 
         if (msgDiv) {
@@ -855,6 +869,76 @@ async function fetchDealsList() {
         const { data: rawDeals, error } = await query;
         if (error) throw error;
 
+        // Fetch Online Deals Settings (Shopify)
+        let onlineMap = {};
+        try {
+            const { data: onlineSettings } = await window.sbClient
+                .from('shopify_deal_settings_t')
+                .select('deal_id, online_enabled');
+            if (onlineSettings) {
+                onlineSettings.forEach(os => {
+                    onlineMap[os.deal_id] = os.online_enabled;
+                });
+            }
+        } catch (osErr) {
+            console.warn('shopify_deal_settings_t load warning:', osErr);
+        }
+
+        // Fetch Active / Latest Voucher Codes for each deal (Shopify Vouchers & Redemptions)
+        let latestCodeMap = {};
+        try {
+            // 1. Shopify Vouchers (Vendor-generated promo codes)
+            const { data: vCodes } = await window.sbClient
+                .from('shopify_vouchers_t')
+                .select('deal_id, code, status, expires_at, issued_at')
+                .order('issued_at', { ascending: false });
+
+            if (vCodes) {
+                vCodes.forEach(vc => {
+                    const isIssued = (vc.status === 'issued');
+                    const isExpired = vc.expires_at ? new Date(vc.expires_at) < new Date() : false;
+                    const isActive = isIssued && !isExpired;
+
+                    if (!latestCodeMap[vc.deal_id] || (!latestCodeMap[vc.deal_id].is_active && isActive)) {
+                        latestCodeMap[vc.deal_id] = {
+                            code: vc.code,
+                            source: 'Shopify Online',
+                            status: isActive ? 'Active / Issued' : (isExpired ? 'Expired' : (vc.status || 'Issued')),
+                            is_active: isActive,
+                            expires_at: vc.expires_at
+                        };
+                    }
+                });
+            }
+
+            // 2. Deal Redemptions (In-store / active tokens)
+            const { data: drCodes } = await window.sbClient
+                .from('deal_redemptions_t')
+                .select('deal_id, manual_code, status, expires_at, redemption_id')
+                .order('redemption_id', { ascending: false });
+
+            if (drCodes) {
+                drCodes.forEach(dr => {
+                    if (dr.manual_code) {
+                        const isPending = (dr.status === 'P');
+                        const isExpired = dr.expires_at ? new Date(dr.expires_at) < new Date() : false;
+                        const isActive = isPending && !isExpired;
+
+                        if (!latestCodeMap[dr.deal_id] || (!latestCodeMap[dr.deal_id].is_active && isActive)) {
+                            latestCodeMap[dr.deal_id] = {
+                                code: dr.manual_code,
+                                source: 'Manual / In-Store',
+                                status: isActive ? 'Pending / Active' : (dr.status === 'R' ? 'Redeemed' : (isExpired ? 'Expired' : dr.status)),
+                                is_active: isActive,
+                                expires_at: dr.expires_at
+                            };
+                        }
+                    }
+                });
+            }
+        } catch (codeErr) {
+            console.warn('Active codes fetch notice:', codeErr);
+        }
 
         fetchedDealsData = (rawDeals || []).map(d => {
             const v = d.vendors_t || {};
@@ -871,6 +955,8 @@ async function fetchDealsList() {
             const fine_prints = (d.deal_fine_print_t || [])
                 .sort((a, b) => (a.order_by || 0) - (b.order_by || 0))
                 .map(fp => ({ instruction: fp.instruction }));
+
+            const codeInfo = latestCodeMap[d.deal_id] || null;
 
             return {
                 deal_id: d.deal_id,
@@ -896,6 +982,11 @@ async function fetchDealsList() {
                 start_time: d.start_time,
                 end_time: d.end_time,
                 is_active: d.is_active,
+                online_enabled: Boolean(onlineMap[d.deal_id]),
+                active_code: codeInfo ? codeInfo.code : null,
+                code_source: codeInfo ? codeInfo.source : null,
+                code_status: codeInfo ? codeInfo.status : null,
+                is_code_active: codeInfo ? Boolean(codeInfo.is_active) : false,
                 category_id: d.category_id,
                 category_name: c.name || 'N/A',
                 vendor_id: d.vendor_id,
@@ -939,13 +1030,15 @@ function filterDealsList() {
     const searchVal = document.getElementById('dealSearchInput')?.value.toLowerCase().trim();
     const branchVal = document.getElementById('dealBranchFilter')?.value;
     const statusVal = document.getElementById('dealStatusFilter')?.value;
+    const onlineVal = document.getElementById('dealOnlineFilter')?.value;
 
     const filtered = fetchedDealsData.filter(deal => {
         const matchesSearch = !searchVal || 
             deal.title.toLowerCase().includes(searchVal) || 
             deal.vendor_name.toLowerCase().includes(searchVal) || 
             deal.category_name.toLowerCase().includes(searchVal) ||
-            String(deal.deal_id).includes(searchVal);
+            String(deal.deal_id).includes(searchVal) ||
+            (deal.active_code && deal.active_code.toLowerCase().includes(searchVal));
 
         const matchesBranch = !branchVal || (deal.branches && deal.branches.some(b => String(b.branch_id) === String(branchVal)));
 
@@ -953,11 +1046,42 @@ function filterDealsList() {
         if (statusVal === 'active') matchesStatus = (deal.is_active === true);
         if (statusVal === 'inactive') matchesStatus = (deal.is_active === false);
 
-        return matchesSearch && matchesBranch && matchesStatus;
+        let matchesOnline = true;
+        if (onlineVal === 'online') matchesOnline = (deal.online_enabled === true);
+        if (onlineVal === 'instore') matchesOnline = (deal.online_enabled !== true);
+
+        return matchesSearch && matchesBranch && matchesStatus && matchesOnline;
     });
 
     renderDealsGrid(filtered);
 }
+
+function copyDealCode(code, btn) {
+    if (!code) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code).then(() => {
+            const orig = btn.innerHTML;
+            btn.innerHTML = '✓ Copied';
+            btn.style.color = '#15803d';
+            btn.style.borderColor = '#86efac';
+            btn.style.background = '#dcfce7';
+            if (typeof showToast === 'function') {
+                showToast(`Code "${code}" copied to clipboard! 📋`, 'success');
+            }
+            setTimeout(() => {
+                btn.innerHTML = orig;
+                btn.style.color = '';
+                btn.style.borderColor = '';
+                btn.style.background = '';
+            }, 1800);
+        }).catch(() => {
+            prompt('Copy voucher code:', code);
+        });
+    } else {
+        prompt('Copy voucher code:', code);
+    }
+}
+window.copyDealCode = copyDealCode;
 
 function renderDealsGrid(deals) {
     const container = document.getElementById('dealsGridContainer');
@@ -989,7 +1113,6 @@ function renderDealsGrid(deals) {
         else if (deal.discount_type === 'F') discountDisplay += ' PKR OFF';
         else if (deal.discount_type === 'BG') discountDisplay = 'Buy 1 Get 1';
 
-
         card.innerHTML = `
             <div class="deal-banner-wrapper">
                 <div class="deal-id-top-badge">ID: #${deal.deal_id}</div>
@@ -1014,13 +1137,40 @@ function renderDealsGrid(deals) {
                     <div class="deal-chips-row">
                         ${discountDisplay ? `<span class="meta-chip">🏷️ ${discountDisplay}</span>` : ''}
                         ${deal.home_section_name ? `<span class="meta-chip">⭐ ${deal.home_section_name}</span>` : ''}
+                        <span class="meta-chip" style="${deal.online_enabled ? 'background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; font-weight: 700;' : 'background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0;'}">
+                            ${deal.online_enabled ? '🌐 Online (Shopify) Active' : '🏬 In-Store Only'}
+                        </span>
                     </div>
+
+                    ${deal.active_code ? `
+                        <div class="deal-code-pill-box ${deal.is_code_active ? 'code-active' : 'code-inactive'}">
+                            <div class="deal-code-pill-left">
+                                <span class="deal-code-badge-tag">${deal.is_code_active ? '🟢 ACTIVE CODE' : '🏷️ LATEST CODE'}</span>
+                                <span class="deal-code-value" id="dealCodeVal_${deal.deal_id}">${deal.active_code}</span>
+                            </div>
+                            <div class="deal-code-pill-right">
+                                <span class="deal-code-source-badge">${deal.code_source || 'Code'}</span>
+                                <button type="button" class="btn-copy-code" onclick="copyDealCode('${deal.active_code}', this)" title="Copy Code">📋 Copy</button>
+                            </div>
+                        </div>
+                    ` : `
+                        <div class="deal-code-pill-box code-none">
+                            <div class="deal-code-pill-left">
+                                <span class="deal-code-badge-tag" style="background:#f1f5f9; color:#94a3b8;">🎟️ CODE</span>
+                                <span style="font-size: 11px; color: #94a3b8; font-style: italic;">No code generated yet</span>
+                            </div>
+                        </div>
+                    `}
 
                     <button class="btn-toggle-details" id="toggleBtn_${deal.deal_id}" onclick="toggleDealCardDetails(${deal.deal_id})">
                         🔍 View Detailed Terms &amp; Branches <span class="arrow-icon">▼</span>
                     </button>
 
                     <div class="deal-details-box" id="dealDetails_${deal.deal_id}" style="display: none;">
+                        <div class="deal-details-row">
+                            <strong>🎟️ Promo / Manual Code:</strong>
+                            <span>${deal.active_code ? `<strong style="font-family: monospace; color: #166534; background: #dcfce7; padding: 2px 7px; border-radius: 4px; border: 1px solid #86efac;">${deal.active_code}</strong> <small style="color: #64748b;">(${deal.code_source || 'Code'} - ${deal.code_status || 'N/A'})</small>` : '<span style="color: #94a3b8;">None</span>'}</span>
+                        </div>
                         <div class="deal-details-row">
                             <strong>📅 Valid Dates:</strong>
                             <span>${deal.valid_from || 'N/A'} to ${deal.valid_until || 'N/A'}</span>
@@ -1032,6 +1182,10 @@ function renderDealsGrid(deals) {
                         <div class="deal-details-row">
                             <strong>🏢 Target Branches:</strong>
                             <span>${deal.branches && deal.branches.length > 0 ? deal.branches.map(b => b.branch_name).join(', ') : 'All Branches'}</span>
+                        </div>
+                        <div class="deal-details-row">
+                            <strong>🌐 Online Channel:</strong>
+                            <span>${deal.online_enabled ? 'Active on Shopify Store' : 'Disabled (In-Store Only)'}</span>
                         </div>
                         ${deal.fine_prints && deal.fine_prints.length > 0 ? `
                             <div style="margin-top: 4px; padding-top: 6px; border-top: 1px dashed #cbd5e1;">
@@ -1046,6 +1200,9 @@ function renderDealsGrid(deals) {
 
                 <div class="deal-card-actions">
                     <button type="button" class="btn-card-edit" onclick="editDealFromCard(${deal.deal_id})">✏️ Edit Deal</button>
+                    <button type="button" class="btn-card-online" style="background:${deal.online_enabled ? '#eff6ff' : '#f8fafc'}; color:${deal.online_enabled ? '#1d4ed8' : '#475569'}; border:1px solid ${deal.online_enabled ? '#bfdbfe' : '#cbd5e1'}; padding:7px 11px; border-radius:8px; font-weight:700; font-size:11px; cursor:pointer;" onclick="toggleDealOnlineStatus(${deal.deal_id}, ${!deal.online_enabled})">
+                        ${deal.online_enabled ? '🌐 Turn Off Online' : '🌐 Enable Online'}
+                    </button>
                     ${deal.is_active 
                         ? `<button type="button" class="btn-card-deactivate" onclick="softDeleteDeal(${deal.deal_id})">Delete</button>` 
                         : `<button type="button" class="btn-card-activate" style="background:#10b981; color:white; border:none; padding:7px 14px; border-radius:8px; font-weight:700; font-size:12px; cursor:pointer;" onclick="toggleDealActiveStatus(${deal.deal_id}, true)">🟢 Activate</button>`}
@@ -1055,6 +1212,24 @@ function renderDealsGrid(deals) {
 
         container.appendChild(card);
     });
+}
+
+async function toggleDealOnlineStatus(dealId, newStatus) {
+    try {
+        const { error } = await window.sbClient
+            .from('shopify_deal_settings_t')
+            .upsert({
+                deal_id: dealId,
+                online_enabled: newStatus,
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'deal_id' });
+
+        if (error) throw error;
+        showToast(`Deal #${dealId} online redemption is now ${newStatus ? 'ENABLED 🌐' : 'DISABLED 🏬'}!`, 'success');
+        await fetchDealsList();
+    } catch (err) {
+        showToast('Failed to update online status: ' + err.message, 'error', 10000);
+    }
 }
 
 function toggleDealCardDetails(dealId) {
@@ -1180,6 +1355,9 @@ async function editDealFromCard(dealId) {
         renderFinePrintUI();
     }
 
+    const onlineCb = document.getElementById('deal_online_enabled');
+    if (onlineCb) onlineCb.checked = Boolean(deal.online_enabled);
+
     document.getElementById('btnDealFormSubmit').textContent = `Update Deal (#${dealId})`;
     document.getElementById('btnCancelEditDeal').style.display = 'block';
 
@@ -1192,6 +1370,9 @@ function resetDealFormToCreate(keepSuccessBanner = false) {
 
     const form = document.getElementById('dealForm');
     if (form) form.reset();
+
+    const onlineCb = document.getElementById('deal_online_enabled');
+    if (onlineCb) onlineCb.checked = false;
 
     // Default dates (valid_until is last day of the same month)
     const today = new Date();

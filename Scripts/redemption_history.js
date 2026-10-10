@@ -178,6 +178,15 @@ function renderHistoryTable(records) {
         else if (r.cashier_role === 'S') staffRoleLabel = 'Supervisor';
         else if (r.cashier_role === 'C') staffRoleLabel = 'Cashier';
 
+        const isOnlineShopify = (!r.branch_id && !r.cashier_user_id) || (r.manual_code && r.manual_code.includes('-'));
+        const branchDisplay = isOnlineShopify
+            ? `<span style="display:inline-flex; align-items:center; gap:4px; background:#eff6ff; color:#1d4ed8; padding:3px 8px; border-radius:6px; font-weight:700; font-size:11px; border:1px solid #bfdbfe;">🌐 Online (Shopify)</span>`
+            : `<span style="font-weight: 700; color: #334155;">🏢 ${r.branch_name || 'Main Office'}</span>`;
+
+        const staffDisplay = isOnlineShopify
+            ? `<div class="user-cell"><span class="user-name">🛒 Shopify Order</span><span class="user-sub" style="color:#059669; font-weight:600;">✓ Automated Sync</span></div>`
+            : `<div class="user-cell"><span class="user-name">👤 ${r.cashier_name || 'Vendor Staff'}</span><span class="user-sub">Role: ${staffRoleLabel}</span></div>`;
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>
@@ -189,7 +198,7 @@ function renderHistoryTable(records) {
                 <div class="user-sub">🏪 ${r.vendor_name || 'Vendor'}</div>
             </td>
             <td>
-                <span style="font-weight: 700; color: #334155;">🏢 ${r.branch_name || 'Main Office'}</span>
+                ${branchDisplay}
             </td>
             <td>
                 <div class="user-cell">
@@ -198,13 +207,10 @@ function renderHistoryTable(records) {
                 </div>
             </td>
             <td>
-                <div class="user-cell">
-                    <span class="user-name">👤 ${r.cashier_name || 'Vendor Staff'}</span>
-                    <span class="user-sub">Role: ${staffRoleLabel}</span>
-                </div>
+                ${staffDisplay}
             </td>
             <td>
-                <span class="code-badge">🎟️ ${r.manual_code || 'REDEEMED'}</span>
+                <span class="code-badge" style="${isOnlineShopify ? 'background:#f0fdf4; color:#15803d; border-color:#bbf7d0;' : ''}">🎟️ ${r.manual_code || 'REDEEMED'}</span>
             </td>
             <td>
                 <div class="user-name amount-highlight">Savings: Rs. ${parseFloat(r.savings_amount || 0).toLocaleString()}</div>
