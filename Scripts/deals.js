@@ -22,6 +22,7 @@ let activeVendorLock = null;
 const prefixMap = { 'F': 'Flat', 'FI': 'Flat', 'FLAT': 'Flat', 'Flat': 'Flat', 'U': 'Up To', 'UPTO': 'Up To', 'UP TO': 'Up To', 'Up To': 'Up To' };
 const typeMap = { 'P': 'Percentage', 'F': 'Flat Amount', 'BG': 'Buy 1 Get 1' };
 const sectionMap = { 'HTD': 'Hot Trending Deals', 'EOZ': 'Exclusive On Zab', 'DM': 'Daily Mega Deals' };
+const tagMap = { 'HOT': 'Hot Deal', 'POP': 'Popular', 'NEW': 'New', 'FEAT': 'Featured', 'LIM': 'Limited Time', 'BEST': 'Best Value' };
 
 function generateDealCode(prefix = 'ZBV') {
     const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -799,6 +800,10 @@ async function loadParameterDropdown(paramDescription, elementId, defaultValue =
 
         if (details) {
             details.forEach(d => {
+                if (paramDescription === 'DEAL_TAG') tagMap[d.abbreviation] = d.detail_name;
+                if (paramDescription === 'DISCOUNT_PREFIX') prefixMap[d.abbreviation] = d.detail_name;
+                if (paramDescription === 'DISCOUNT_TYPES') typeMap[d.abbreviation] = d.detail_name;
+                if (paramDescription === 'HOME_SECTIONS') sectionMap[d.abbreviation] = d.detail_name;
                 const isSelected = (defaultValue && d.abbreviation === defaultValue) ? 'selected' : '';
                 select.innerHTML += `<option value="${d.abbreviation}" ${isSelected}>${d.detail_name}</option>`;
             });
@@ -1010,13 +1015,13 @@ async function fetchDealsList() {
                 description: d.description,
                 discount_value: d.discount_value,
                 discount_type: d.discount_type,
-                discount_type_name: typeMap[d.discount_type] || d.discount_type,
+                discount_type_name: (typeof typeMap !== 'undefined' && typeMap[d.discount_type]) ? typeMap[d.discount_type] : (d.discount_type || ''),
                 discount_prefix: d.discount_prefix,
-                discount_prefix_name: prefixMap[d.discount_prefix] || d.discount_prefix,
+                discount_prefix_name: (typeof prefixMap !== 'undefined' && prefixMap[d.discount_prefix]) ? prefixMap[d.discount_prefix] : (d.discount_prefix || ''),
                 deal_tag: d.deal_tag,
-                deal_tag_name: tagMap[d.deal_tag] || d.deal_tag,
+                deal_tag_name: (typeof tagMap !== 'undefined' && tagMap[d.deal_tag]) ? tagMap[d.deal_tag] : (d.deal_tag || ''),
                 home_section: d.home_section,
-                home_section_name: sectionMap[d.home_section] || d.home_section,
+                home_section_name: (typeof sectionMap !== 'undefined' && sectionMap[d.home_section]) ? sectionMap[d.home_section] : (d.home_section || ''),
                 min_purchase_amount: d.min_purchase_amount,
                 max_discount_amount: d.max_discount_amount,
                 redeem_limit_per_day: d.redeem_limit_per_day,
