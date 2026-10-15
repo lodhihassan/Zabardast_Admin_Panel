@@ -22,7 +22,9 @@ BEGIN
     FROM public.deal_redemptions_t
     WHERE (qr_code_token = p_code OR manual_code = UPPER(p_code)) 
       AND status = 'P' 
-      AND expires_at > NOW();
+      AND expires_at > NOW()
+    ORDER BY created_date DESC
+    LIMIT 1;
 
     IF NOT FOUND THEN
         RETURN JSON_BUILD_OBJECT('success', FALSE, 'message', 'Invalid or expired QR Token or Manual Code.');

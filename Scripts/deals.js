@@ -21,8 +21,33 @@ let activeVendorLock = null;
 
 const prefixMap = { 'F': 'Flat', 'FI': 'Flat', 'FLAT': 'Flat', 'Flat': 'Flat', 'U': 'Up To', 'UPTO': 'Up To', 'UP TO': 'Up To', 'Up To': 'Up To' };
 const typeMap = { 'P': 'Percentage', 'F': 'Flat Amount', 'BG': 'Buy 1 Get 1' };
-const tagMap = { 'I': 'Insider', 'N': 'New Arrival', 'E': 'Exclusive', 'T': 'Takeaway', 'D': 'Dine-In', 'DEL': 'Delivery' };
 const sectionMap = { 'HTD': 'Hot Trending Deals', 'EOZ': 'Exclusive On Zab', 'DM': 'Daily Mega Deals' };
+
+function generateDealCode(prefix = 'ZBV') {
+    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+    let suffix = '';
+    for (let i = 0; i < 8; i++) {
+        suffix += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return `${prefix}-${suffix}`;
+}
+window.generateDealCode = generateDealCode;
+
+function rerollDealCode() {
+    const codeInput = document.getElementById('deal_code');
+    if (codeInput) {
+        codeInput.value = generateDealCode('ZBV');
+    }
+}
+window.rerollDealCode = rerollDealCode;
+
+function copyInputVal(id, btn) {
+    const el = document.getElementById(id);
+    if (el && el.value) {
+        copyDealCode(el.value, btn);
+    }
+}
+window.copyInputVal = copyInputVal;
 
 async function applyVendorLockContext() {
     if (!activeVendorLock) return;
@@ -176,6 +201,9 @@ window.addEventListener('DOMContentLoaded', async () => {
                 if (untilEl) untilEl.value = targetUntil;
             }
         });
+    const dealCodeEl = document.getElementById('deal_code');
+    if (dealCodeEl && !dealCodeEl.value) {
+        dealCodeEl.value = generateDealCode('ZBV');
     }
 
     const dealForm = document.getElementById('dealForm');
@@ -300,11 +328,13 @@ async function handleDealFormSubmit(e) {
         }
 
         const cleanUser = getCleanAdminUser();
+        const deal_code = (document.getElementById('deal_code')?.value || '').trim().toUpperCase() || generateDealCode('ZBV');
 
         const dealPayload = {
             category_id,
             vendor_id,
             title,
+            deal_code,
             description,
             discount_type,
             discount_prefix,
@@ -887,6 +917,19 @@ async function fetchDealsList() {
         // Fetch Active / Latest Voucher Codes for each deal (Shopify Vouchers & Redemptions)
         let latestCodeMap = {};
         try {
+            // 0. Prioritize permanent unique deal_code directly from deals_t
+            (rawDeals || []).forEach(d => {
+                if (d.deal_code) {
+                    latestCodeMap[d.deal_id] = {
+                        code: d.deal_code,
+                        source: 'Deal Unique Code',
+                        status: 'Active',
+                        is_active: true,
+                        expires_at: d.valid_until
+                    };
+                }
+            });
+
             // 1. Shopify Vouchers (Vendor-generated promo codes)
             const { data: vCodes } = await window.sbClient
                 .from('shopify_vouchers_t')
@@ -983,10 +1026,11 @@ async function fetchDealsList() {
                 end_time: d.end_time,
                 is_active: d.is_active,
                 online_enabled: Boolean(onlineMap[d.deal_id]),
-                active_code: codeInfo ? codeInfo.code : null,
-                code_source: codeInfo ? codeInfo.source : null,
-                code_status: codeInfo ? codeInfo.status : null,
-                is_code_active: codeInfo ? Boolean(codeInfo.is_active) : false,
+                deal_code: d.deal_code || null,
+                active_code: (codeInfo && codeInfo.code) ? codeInfo.code : (d.deal_code || null),
+                code_source: (codeInfo && codeInfo.source) ? codeInfo.source : (d.deal_code ? 'Deal Unique Code' : null),
+                code_status: (codeInfo && codeInfo.status) ? codeInfo.status : (d.deal_code ? 'Active' : null),
+                is_code_active: codeInfo ? Boolean(codeInfo.is_active) : Boolean(d.deal_code),
                 category_id: d.category_id,
                 category_name: c.name || 'N/A',
                 vendor_id: d.vendor_id,
@@ -1294,6 +1338,10 @@ async function editDealFromCard(dealId) {
 
     document.getElementById('title').value = deal.title || '';
     document.getElementById('title').dataset.userEdited = 'true';
+
+    const dealCodeEl = document.getElementById('deal_code');
+    if (dealCodeEl) dealCodeEl.value = deal.deal_code || deal.active_code || generateDealCode('ZBV');
+
     document.getElementById('description').value = deal.description || '';
     document.getElementById('discount_type').value = deal.discount_type || '';
     document.getElementById('discount_prefix').value = deal.discount_prefix || '';
@@ -1373,6 +1421,9 @@ function resetDealFormToCreate(keepSuccessBanner = false) {
 
     const onlineCb = document.getElementById('deal_online_enabled');
     if (onlineCb) onlineCb.checked = false;
+
+    const dealCodeEl = document.getElementById('deal_code');
+    if (dealCodeEl) dealCodeEl.value = generateDealCode('ZBV');
 
     // Default dates (valid_until is last day of the same month)
     const today = new Date();

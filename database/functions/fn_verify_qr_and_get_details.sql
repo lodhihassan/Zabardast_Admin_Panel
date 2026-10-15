@@ -21,7 +21,9 @@ BEGIN
     SELECT dr.redemption_id, dr.user_id, dr.deal_id, dr.user_reward_id, dr.expires_at, dr.status
     INTO v_redemption
     FROM public.deal_redemptions_t dr
-    WHERE (dr.qr_code_token = p_code OR dr.manual_code = UPPER(p_code));
+    WHERE (dr.qr_code_token = p_code OR dr.manual_code = UPPER(p_code))
+    ORDER BY dr.created_date DESC
+    LIMIT 1;
 
     IF NOT FOUND THEN
         RETURN JSON_BUILD_OBJECT('success', FALSE, 'message', 'Invalid QR Token or Manual Code.');

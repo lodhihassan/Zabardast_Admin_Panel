@@ -52,6 +52,8 @@ BEGIN
         'start_time', d.start_time,
         'end_time', d.end_time,
         'is_active', d.is_active,
+        'deal_code', d.deal_code,
+        'online_enabled', COALESCE((SELECT sds.online_enabled FROM public.shopify_deal_settings_t sds WHERE sds.deal_id = d.deal_id), FALSE),
         
         -- Home Section Tag
         'home_section', d.home_section,

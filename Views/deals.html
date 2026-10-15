@@ -66,6 +66,18 @@
                     </div>
 
                     <div class="form-group full-width">
+                        <label for="deal_code" style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>🎟️ Deal Redemption Code (Unique) *</span>
+                            <button type="button" onclick="rerollDealCode()" style="background: none; border: none; color: #4f46e5; font-size: 11px; font-weight: 700; cursor: pointer; text-decoration: underline;">🎲 Re-roll Code</button>
+                        </label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="deal_code" placeholder="e.g. ZBV-K792NX4P" style="font-family: monospace; font-weight: 800; letter-spacing: 1px; color: #1e1b4b; background: #e0e7ff; border: 1.5px solid #818cf8; text-transform: uppercase;" required>
+                            <button type="button" onclick="copyInputVal('deal_code', this)" style="padding: 0 12px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 700;" title="Copy Code">📋</button>
+                        </div>
+                        <small style="color: var(--text-muted); font-size: 11px;">This unique code is assigned to this deal. All students will see and use this code when redeeming on mobile or Shopify checkout.</small>
+                    </div>
+
+                    <div class="form-group full-width">
                         <label for="description">Description *</label>
                         <textarea id="description" rows="2" placeholder="Enter deal description..." required></textarea>
                     </div>

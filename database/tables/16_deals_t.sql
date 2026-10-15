@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS public.deals_t (
     start_time TIME DEFAULT '00:00:00',
     end_time TIME DEFAULT '23:59:00',
     redeem_limit_per_day INT DEFAULT 1,
+    deal_code VARCHAR(50) UNIQUE,
     description TEXT,
     banner_image_id UUID REFERENCES public.uploaded_files_t(file_id),
     is_active BOOLEAN DEFAULT TRUE,
@@ -26,6 +27,8 @@ CREATE TABLE IF NOT EXISTS public.deals_t (
     created_date TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW(),
     updated_date TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS idx_deals_deal_code ON public.deals_t(deal_code);
 
 CREATE INDEX IF NOT EXISTS idx_deals_discount_type ON public.deals_t(discount_type);
 CREATE INDEX IF NOT EXISTS idx_deals_deal_tag ON public.deals_t(deal_tag);

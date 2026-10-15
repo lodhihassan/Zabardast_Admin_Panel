@@ -71,8 +71,8 @@ BEGIN
     END IF;
 
     -- 2. Fetch Deal Details
-    SELECT redeem_limit_per_day, start_time, end_time 
-    INTO v_limit_per_day, v_start_time, v_end_time
+    SELECT redeem_limit_per_day, start_time, end_time, deal_code 
+    INTO v_limit_per_day, v_start_time, v_end_time, v_manual_code
     FROM public.deals_t
     WHERE deal_id = p_deal_id;
 
@@ -116,31 +116,53 @@ BEGIN
     SET status = 'E'
     WHERE user_id = p_user_id 
       AND deal_id = p_deal_id 
-      AND status = 'P'
+      AND status = 'P' 
       AND expires_at <= NOW();
 
-    -- 6. Check for any currently active pending ('P') token
-    SELECT redemption_id, qr_code_token, manual_code, expires_at INTO v_existing_redemption
-    FROM public.deal_redemptions_t
-    WHERE user_id = p_user_id 
-      AND deal_id = p_deal_id 
-      AND status = 'P'
-      AND expires_at > NOW();
+    -- 6. Resolve the Deal's Unique Redemption Code (ZBV-XXXXXXXX format)
+    -- A. Pick deal_code directly from deals_t
+    SELECT deal_code INTO v_manual_code
+    FROM public.deals_t
+    WHERE deal_id = p_deal_id;
 
-    IF FOUND THEN
-        -- Check if vendor has an active Shopify voucher for this deal that should sync with manual_code
+    -- B. If deal_code was not yet set, check shopify_vouchers_t
+    IF v_manual_code IS NULL THEN
         BEGIN
             SELECT code INTO v_manual_code
             FROM public.shopify_vouchers_t
             WHERE deal_id = p_deal_id
-              AND status = 'issued'
+              AND (status = 'issued' OR kind = 'vendor_shared')
               AND (expires_at IS NULL OR expires_at > NOW())
             ORDER BY issued_at DESC
             LIMIT 1;
         EXCEPTION WHEN OTHERS THEN
             v_manual_code := NULL;
         END;
+    END IF;
 
+    -- C. If still NULL (legacy deal with no code), generate permanent ZBV-XXXXXXXX code and save to deals_t
+    IF v_manual_code IS NULL THEN
+        LOOP
+            -- Plugin format: ZBV- + 8 alphanumeric characters from unambiguous set
+            v_manual_code := 'ZBV-' || UPPER(SUBSTRING(TRANSLATE(MD5(RANDOM()::text || CLOCK_TIMESTAMP()::text), '01oil', '23456') FROM 1 FOR 8));
+            EXIT WHEN NOT EXISTS (
+                SELECT 1 FROM public.deals_t WHERE deal_code = v_manual_code
+            );
+        END LOOP;
+        
+        -- Persist to deal so all subsequent students get this exact unique code for this deal
+        UPDATE public.deals_t SET deal_code = v_manual_code WHERE deal_id = p_deal_id;
+    END IF;
+
+    -- 7. Check for any currently active pending ('P') token
+    SELECT redemption_id, qr_code_token, manual_code, expires_at INTO v_existing_redemption
+    FROM public.deal_redemptions_t
+    WHERE user_id = p_user_id 
+      AND deal_id = p_deal_id 
+      AND status = 'P' 
+      AND expires_at > NOW();
+
+    IF FOUND THEN
         IF v_manual_code IS NOT NULL AND (v_existing_redemption.manual_code IS NULL OR v_existing_redemption.manual_code != v_manual_code) THEN
             UPDATE public.deal_redemptions_t
             SET manual_code = v_manual_code
@@ -160,32 +182,8 @@ BEGIN
         );
     END IF;
 
-    -- 7. Generate New Unique QR Token (ZBD-prefix) & Pick Vendor Code or Fallback (ZB + 4 Digits)
+    -- 8. Generate New Unique QR Token (ZBD-prefix) & Insert Pending ('P') Redemption
     v_qr_token := 'ZBD-' || gen_random_uuid()::text;
-
-    -- Check if Vendor has generated an active code in Shopify for this deal
-    BEGIN
-        SELECT code INTO v_manual_code
-        FROM public.shopify_vouchers_t
-        WHERE deal_id = p_deal_id
-          AND status = 'issued'
-          AND (expires_at IS NULL OR expires_at > NOW())
-        ORDER BY issued_at DESC
-        LIMIT 1;
-    EXCEPTION WHEN OTHERS THEN
-        v_manual_code := NULL;
-    END;
-
-    -- If no vendor code found in Shopify, fallback to ZB + 4 random digits
-    IF v_manual_code IS NULL THEN
-        LOOP
-            v_manual_code := 'ZB' || LPAD(FLOOR(RANDOM() * 10000)::text, 4, '0');
-            EXIT WHEN NOT EXISTS (
-                SELECT 1 FROM public.deal_redemptions_t 
-                WHERE manual_code = v_manual_code AND status = 'P' AND expires_at > NOW()
-            );
-        END LOOP;
-    END IF;
 
     -- 8. Insert New Entry with Pending Status ('P')
     INSERT INTO public.deal_redemptions_t (
