@@ -201,6 +201,8 @@ window.addEventListener('DOMContentLoaded', async () => {
                 if (untilEl) untilEl.value = targetUntil;
             }
         });
+    }
+
     const dealCodeEl = document.getElementById('deal_code');
     if (dealCodeEl && !dealCodeEl.value) {
         dealCodeEl.value = generateDealCode('ZBV');
