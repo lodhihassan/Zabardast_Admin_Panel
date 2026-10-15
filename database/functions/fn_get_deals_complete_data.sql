@@ -30,15 +30,33 @@ BEGIN
         FROM public.branches_t b
         WHERE b.is_active = TRUE
     ),
+    deal_branches AS (
+        SELECT 
+            d.deal_id,
+            b.branch_id
+        FROM public.deals_t d
+        JOIN public.branches_t b 
+          ON b.vendor_id = d.vendor_id AND b.is_active = TRUE
+        WHERE (
+            -- If specific branches are scoped for this deal, match only those
+            EXISTS (
+                SELECT 1 FROM public.deal_scope_t ds 
+                WHERE ds.deal_id = d.deal_id AND ds.branch_id = b.branch_id
+            )
+            -- If no branches are explicitly scoped for this deal, all branches of the vendor are valid
+            OR NOT EXISTS (
+                SELECT 1 FROM public.deal_scope_t ds 
+                WHERE ds.deal_id = d.deal_id AND ds.branch_id IS NOT NULL
+            )
+        )
+    ),
     min_deal_distances AS (
         SELECT 
-            ds.deal_id,
+            db.deal_id,
             MIN(bd.distance_km) AS min_distance_km
-        FROM public.deal_scope_t ds
-        LEFT JOIN branch_distances bd 
-               ON bd.branch_id = ds.branch_id 
-               OR (ds.branch_id IS NULL AND ds.vendor_id = bd.vendor_id)
-        GROUP BY ds.deal_id
+        FROM deal_branches db
+        JOIN branch_distances bd ON bd.branch_id = db.branch_id
+        GROUP BY db.deal_id
     )
     SELECT JSON_BUILD_OBJECT(
         'deal_id', d.deal_id,
@@ -133,13 +151,15 @@ BEGIN
             WHERE b.vendor_id = d.vendor_id 
               AND b.is_active = TRUE
               AND (
+                  -- If deal has specific branch scopes, match only those branches
                   EXISTS (
                       SELECT 1 FROM public.deal_scope_t ds 
                       WHERE ds.deal_id = d.deal_id AND ds.branch_id = b.branch_id
                   )
-                  OR EXISTS (
+                  -- If deal has NO branch scopes at all, all branches of the vendor are valid
+                  OR NOT EXISTS (
                       SELECT 1 FROM public.deal_scope_t ds 
-                      WHERE ds.deal_id = d.deal_id AND ds.branch_id IS NULL
+                      WHERE ds.deal_id = d.deal_id AND ds.branch_id IS NOT NULL
                   )
               )
         )
@@ -188,7 +208,11 @@ BEGIN
           OR EXISTS (
               SELECT 1 FROM public.deal_scope_t ds
               WHERE ds.deal_id = d.deal_id 
-                AND (ds.institute_id IS NULL OR ds.institute_id = p_institute_id)
+                AND ds.institute_id = p_institute_id
+          )
+          OR NOT EXISTS (
+              SELECT 1 FROM public.deal_scope_t ds
+              WHERE ds.deal_id = d.deal_id AND ds.institute_id IS NOT NULL
           )
       );
 END;
