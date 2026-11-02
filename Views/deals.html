@@ -71,7 +71,7 @@
                             <button type="button" onclick="rerollDealCode()" style="background: none; border: none; color: #4f46e5; font-size: 11px; font-weight: 700; cursor: pointer; text-decoration: underline;">🎲 Re-roll Code</button>
                         </label>
                         <div style="display: flex; gap: 8px;">
-                            <input type="text" id="deal_code" placeholder="e.g. ZBV-K792NX4P" style="font-family: monospace; font-weight: 800; letter-spacing: 1px; color: #1e1b4b; background: #e0e7ff; border: 1.5px solid #818cf8; text-transform: uppercase;" required>
+                            <input type="text" id="deal_code" placeholder="e.g. ZAB-K792NX4P" style="font-family: monospace; font-weight: 800; letter-spacing: 1px; color: #1e1b4b; background: #e0e7ff; border: 1.5px solid #818cf8; text-transform: uppercase;" required>
                             <button type="button" onclick="copyInputVal('deal_code', this)" style="padding: 0 12px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 700;" title="Copy Code">📋</button>
                         </div>
                         <small style="color: var(--text-muted); font-size: 11px;">This unique code is assigned to this deal. All students will see and use this code when redeeming on mobile or Shopify checkout.</small>
@@ -257,7 +257,7 @@
         <!-- 2. VIEW ALL DEALS VIEW -->
         <div id="viewDealsSection" style="display: none;">
             <div class="filter-bar">
-                <input type="text" id="dealSearchInput" class="search-input" style="flex: 2; padding: 8px 12px; font-size: 13px;" placeholder="🔍 Search deals by title, vendor, code (e.g. ZBV-), ID..." oninput="filterDealsList()">
+                <input type="text" id="dealSearchInput" class="search-input" style="flex: 2; padding: 8px 12px; font-size: 13px;" placeholder="🔍 Search deals by title, vendor, code (e.g. ZAB-), ID..." oninput="filterDealsList()">
                 <select id="dealCategoryFilter" class="filter-select" style="flex: 1; padding: 8px 12px; font-size: 13px;" onchange="fetchDealsList()">
                     <option value="">All Categories</option>
                 </select>

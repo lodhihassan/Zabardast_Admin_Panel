@@ -24,7 +24,7 @@ const typeMap = { 'P': 'Percentage', 'F': 'Flat Amount', 'BG': 'Buy 1 Get 1' };
 const sectionMap = { 'HTD': 'Hot Trending Deals', 'EOZ': 'Exclusive On Zab', 'DM': 'Daily Mega Deals' };
 const tagMap = { 'HOT': 'Hot Deal', 'POP': 'Popular', 'NEW': 'New', 'FEAT': 'Featured', 'LIM': 'Limited Time', 'BEST': 'Best Value' };
 
-function generateDealCode(prefix = 'ZBV') {
+function generateDealCode(prefix = 'ZAB') {
     const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
     let suffix = '';
     for (let i = 0; i < 8; i++) {
@@ -37,7 +37,7 @@ window.generateDealCode = generateDealCode;
 function rerollDealCode() {
     const codeInput = document.getElementById('deal_code');
     if (codeInput) {
-        codeInput.value = generateDealCode('ZBV');
+        codeInput.value = generateDealCode('ZAB');
     }
 }
 window.rerollDealCode = rerollDealCode;
@@ -206,7 +206,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     const dealCodeEl = document.getElementById('deal_code');
     if (dealCodeEl && !dealCodeEl.value) {
-        dealCodeEl.value = generateDealCode('ZBV');
+        dealCodeEl.value = generateDealCode('ZAB');
     }
 
     const dealForm = document.getElementById('dealForm');
@@ -331,7 +331,7 @@ async function handleDealFormSubmit(e) {
         }
 
         const cleanUser = getCleanAdminUser();
-        const deal_code = (document.getElementById('deal_code')?.value || '').trim().toUpperCase() || generateDealCode('ZBV');
+        const deal_code = (document.getElementById('deal_code')?.value || '').trim().toUpperCase() || generateDealCode('ZAB');
 
         const dealPayload = {
             category_id,
@@ -1347,7 +1347,7 @@ async function editDealFromCard(dealId) {
     document.getElementById('title').dataset.userEdited = 'true';
 
     const dealCodeEl = document.getElementById('deal_code');
-    if (dealCodeEl) dealCodeEl.value = deal.deal_code || deal.active_code || generateDealCode('ZBV');
+    if (dealCodeEl) dealCodeEl.value = deal.deal_code || deal.active_code || generateDealCode('ZAB');
 
     document.getElementById('description').value = deal.description || '';
     document.getElementById('discount_type').value = deal.discount_type || '';
@@ -1430,7 +1430,7 @@ function resetDealFormToCreate(keepSuccessBanner = false) {
     if (onlineCb) onlineCb.checked = false;
 
     const dealCodeEl = document.getElementById('deal_code');
-    if (dealCodeEl) dealCodeEl.value = generateDealCode('ZBV');
+    if (dealCodeEl) dealCodeEl.value = generateDealCode('ZAB');
 
     // Default dates (valid_until is last day of the same month)
     const today = new Date();

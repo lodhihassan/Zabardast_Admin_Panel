@@ -119,7 +119,7 @@ BEGIN
       AND status = 'P' 
       AND expires_at <= NOW();
 
-    -- 6. Resolve the Deal's Unique Redemption Code (ZBV-XXXXXXXX format)
+    -- 6. Resolve the Deal's Unique Redemption Code (ZAB-XXXXXXXX format)
     -- A. Pick deal_code directly from deals_t
     SELECT deal_code INTO v_manual_code
     FROM public.deals_t
@@ -140,11 +140,11 @@ BEGIN
         END;
     END IF;
 
-    -- C. If still NULL (legacy deal with no code), generate permanent ZBV-XXXXXXXX code and save to deals_t
+    -- C. If still NULL (legacy deal with no code), generate permanent ZAB-XXXXXXXX code and save to deals_t
     IF v_manual_code IS NULL THEN
         LOOP
-            -- Plugin format: ZBV- + 8 alphanumeric characters from unambiguous set
-            v_manual_code := 'ZBV-' || UPPER(SUBSTRING(TRANSLATE(MD5(RANDOM()::text || CLOCK_TIMESTAMP()::text), '01oil', '23456') FROM 1 FOR 8));
+            -- Plugin format: ZAB- + 8 alphanumeric characters from unambiguous set
+            v_manual_code := 'ZAB-' || UPPER(SUBSTRING(TRANSLATE(MD5(RANDOM()::text || CLOCK_TIMESTAMP()::text), '01oil', '23456') FROM 1 FOR 8));
             EXIT WHEN NOT EXISTS (
                 SELECT 1 FROM public.deals_t WHERE deal_code = v_manual_code
             );
@@ -182,8 +182,8 @@ BEGIN
         );
     END IF;
 
-    -- 8. Generate New Unique QR Token (ZBD-prefix) & Insert Pending ('P') Redemption
-    v_qr_token := 'ZBD-' || gen_random_uuid()::text;
+    -- 8. Generate New Unique QR Token (ZAB-prefix) & Insert Pending ('P') Redemption
+    v_qr_token := 'ZAB-' || gen_random_uuid()::text;
 
     -- 8. Insert New Entry with Pending Status ('P')
     INSERT INTO public.deal_redemptions_t (
