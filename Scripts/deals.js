@@ -25,12 +25,8 @@ const sectionMap = { 'HTD': 'Hot Trending Deals', 'EOZ': 'Exclusive On Zab', 'DM
 const tagMap = { 'HOT': 'Hot Deal', 'POP': 'Popular', 'NEW': 'New', 'FEAT': 'Featured', 'LIM': 'Limited Time', 'BEST': 'Best Value' };
 
 function generateDealCode(prefix = 'ZAB') {
-    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-    let suffix = '';
-    for (let i = 0; i < 8; i++) {
-        suffix += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return `${prefix}-${suffix}`;
+    const num = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    return `${prefix}${num}`;
 }
 window.generateDealCode = generateDealCode;
 
