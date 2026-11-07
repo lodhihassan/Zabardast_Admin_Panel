@@ -7,3 +7,4 @@ ALTER TABLE public.deal_redemptions_t
 CREATE UNIQUE INDEX IF NOT EXISTS idx_deal_redemptions_active_qr 
   ON public.deal_redemptions_t (qr_code_token) 
   WHERE status = 'P';
+
