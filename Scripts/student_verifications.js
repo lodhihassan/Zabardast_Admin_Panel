@@ -45,6 +45,17 @@ async function fetchVerificationRequests() {
         const instMap = new Map(institutes.map(i => [i.institute_id, i]));
         const campMap = new Map(campuses.map(c => [c.campus_id, c]));
 
+        const getStorageRelativePath = (fileObj) => {
+            if (!fileObj || !fileObj.file_path) return null;
+            let path = fileObj.file_path.trim();
+            if (path.startsWith('http://') || path.startsWith('https://')) return null;
+            if (path.startsWith('/')) path = path.substring(1);
+            if (path.toLowerCase().startsWith('student_verification/')) {
+                path = path.substring('student_verification/'.length);
+            }
+            return path;
+        };
+
         const getPublicUrl = (fileObj) => {
             if (!fileObj || !fileObj.file_path) return null;
             let path = fileObj.file_path.trim();
@@ -59,6 +70,43 @@ async function fetchVerificationRequests() {
                 path = `${STORAGE_BUCKET}/${path}`;
             }
             return getVendorLogoUrl(path);
+        };
+
+        // Collect all distinct paths for private Student_Verification bucket to batch sign
+        const pathsToSign = [];
+        files.forEach(f => {
+            const relPath = getStorageRelativePath(f);
+            if (relPath && !pathsToSign.includes(relPath)) {
+                pathsToSign.push(relPath);
+            }
+        });
+
+        const signedUrlMap = new Map();
+        if (pathsToSign.length > 0 && window.sbClient && window.sbClient.storage) {
+            try {
+                const { data: signedData, error: signErr } = await window.sbClient.storage
+                    .from(STORAGE_BUCKET)
+                    .createSignedUrls(pathsToSign, 3600);
+
+                if (signedData && Array.isArray(signedData)) {
+                    signedData.forEach(item => {
+                        if (item && item.signedUrl && item.path) {
+                            signedUrlMap.set(item.path.toLowerCase().trim(), item.signedUrl);
+                        }
+                    });
+                }
+            } catch (signErr) {
+                console.warn('Batch sign verification files warning:', signErr);
+            }
+        }
+
+        const getSecureDocUrl = (fileObj) => {
+            if (!fileObj || !fileObj.file_path) return null;
+            const relPath = getStorageRelativePath(fileObj);
+            if (relPath && signedUrlMap.has(relPath.toLowerCase().trim())) {
+                return signedUrlMap.get(relPath.toLowerCase().trim());
+            }
+            return getPublicUrl(fileObj);
         };
 
         allVerifications = profiles.map(prof => {
@@ -91,8 +139,8 @@ async function fetchVerificationRequests() {
                 created_date: verif.created_date || prof.created_date,
                 student_profile: prof,
                 user: usr,
-                student_card_url: getPublicUrl(cardFile),
-                cnic_card_url: getPublicUrl(cnicFile),
+                student_card_url: getSecureDocUrl(cardFile),
+                cnic_card_url: getSecureDocUrl(cnicFile),
                 institute_name: inst ? inst.name : 'N/A',
                 campus_name: camp ? camp.campus_name : 'N/A',
                 has_docs: !!(cardFile || cnicFile)
